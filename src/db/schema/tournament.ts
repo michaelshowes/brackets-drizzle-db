@@ -8,6 +8,8 @@ export const tournament = pgTable('Tournament', {
     id: text('id').primaryKey(),
     // Name of the tournament
     name: text('name').notNull(),
+    // URL-friendly slug for the tournament
+    slug: text('slug').notNull(),
     // Description of the tournament
     description: text('description'),
     // Start date of the tournament
