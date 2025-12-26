@@ -5,6 +5,7 @@ import type { JsonValue } from '../../types';
 export type Tournament = {
     id: string;
     name: string;
+    slug: string;
     description: string | null;
     start_date: Date | null;
     end_date: Date | null;
@@ -14,6 +15,7 @@ export type Tournament = {
 // Input type for creating/updating tournaments
 type TournamentInput = {
     name: string;
+    slug?: string;
     description?: string | null;
     start_date?: Date | string | null;
     end_date?: Date | string | null;
@@ -37,10 +39,18 @@ function normalizeExtra(extra: unknown): Record<string, unknown> | undefined {
     return undefined;
 }
 
+function generateSlug(name: string): string {
+    return name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+}
+
 export const TournamentTransformer = {
     to(input: TournamentInput) {
         return {
             name: input.name,
+            slug: input.slug ?? generateSlug(input.name),
             description: input.description ?? null,
             startDate: parseDate(input.start_date),
             endDate: parseDate(input.end_date),
@@ -51,6 +61,7 @@ export const TournamentTransformer = {
         return {
             id: output.id,
             name: output.name,
+            slug: output.slug,
             description: output.description,
             start_date: output.startDate,
             end_date: output.endDate,
