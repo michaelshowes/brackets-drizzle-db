@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Storage Handlers - Brackets Drizzle DB</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/schema-diagrams.css">
+    <link rel="stylesheet" href="css/code-examples.css">
+</head>
+<body>
+    <button class="mobile-menu-toggle" onclick="toggleSidebar()">☰ Menu</button>
+    
+    <div class="page-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">Brackets Drizzle DB</div>
+                <div class="sidebar-version">v2.1.0</div>
+            </div>
+            
+            <nav>
+                <div class="nav-section">
+                    <div class="nav-section-title">Getting Started</div>
+                    <ul class="nav-list">
+                        <li class="nav-item"><a href="index.html" class="nav-link">Overview</a></li>
+                        <li class="nav-item"><a href="architecture.html" class="nav-link">Architecture</a></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Core Concepts</div>
+                    <ul class="nav-list">
+                        <li class="nav-item"><a href="database-schema.html" class="nav-link">Database Schema</a></li>
+                        <li class="nav-item"><a href="storage-handlers.html" class="nav-link active">Storage Handlers</a></li>
+                        <li class="nav-item"><a href="transformers.html" class="nav-link">Transformers</a></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Reference</div>
+                    <ul class="nav-list">
+                        <li class="nav-item"><a href="api-reference.html" class="nav-link">API Reference</a></li>
+                        <li class="nav-item"><a href="scaling-guide.html" class="nav-link">Scaling Guide</a></li>
+                    </ul>
+                </div>
+            </nav>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <nav class="breadcrumbs">
+                <a href="index.html">Home</a>
+                <span class="breadcrumb-separator">›</span>
+                <a href="architecture.html">Core Concepts</a>
+                <span class="breadcrumb-separator">›</span>
+                <span>Storage Handlers</span>
+            </nav>
+            
+            <div class="page-header">
+                <h1>Storage Handlers</h1>
+                <p class="page-subtitle">
+                    Complete guide to CRUD operation handlers that route database operations to entity-specific logic
+                </p>
+            </div>
+            
+            <div class="toc">
+                <div class="toc-title">On This Page</div>
+                <ul class="toc-list">
+                    <li><a href="#overview">Handler Overview</a></li>
+                    <li><a href="#dispatch-pattern">Dispatch Pattern</a></li>
+                    <li><a href="#insert-handlers">Insert Handlers</a></li>
+                    <li><a href="#select-handlers">Select Handlers</a></li>
+                    <li><a href="#update-handlers">Update Handlers</a></li>
+                    <li><a href="#delete-handlers">Delete Handlers</a></li>
+                    <li><a href="#complex-entities">Complex Entity Handling</a></li>
+                    <li><a href="#extending">Adding New Entities</a></li>
+                </ul>
+            </div>
+            
+            <!-- Handler Overview -->
+            <section>
+                <h2 id="overview">Handler Overview</h2>
+                <p>
+                    Storage handlers are the intermediary layer between the <code>SqlDatabase</code> class 
+                    and the actual Drizzle ORM queries. They provide entity-specific logic for each CRUD operation.
+                </p>
+                
+                <h3>File Structure</h3>
+                <div class="file-tree">
+<span class="file-tree-folder">src/storage-handlers/</span>
+├── <span class="file-tree-file">index.ts</span>              <span style="color: var(--color-text-muted)"># Re-exports all handlers</span>
+├── <span class="file-tree-file">insert.ts</span>             <span style="color: var(--color-text-muted)"># handleInsert() dispatcher</span>
+├── <span class="file-tree-file">select.ts</span>             <span style="color: var(--color-text-muted)"># handleSelect() dispatcher</span>
+├── <span class="file-tree-file">update.ts</span>             <span style="color: var(--color-text-muted)"># handleUpdate() dispatcher</span>
+├── <span class="file-tree-file">delete.ts</span>             <span style="color: var(--color-text-muted)"># handleDelete() dispatcher</span>
+│
+├── <span class="file-tree-folder">insert-handlers/</span>
+│   ├── <span class="file-tree-file">index.ts</span>
+│   ├── <span class="file-tree-file">tournament.ts</span>     <span style="color: var(--color-text-muted)"># handleTournamentInsert()</span>
+│   ├── <span class="file-tree-file">participant.ts</span>    <span style="color: var(--color-text-muted)"># handleParticipantInsert()</span>
+│   ├── <span class="file-tree-file">stage.ts</span>          <span style="color: var(--color-text-muted)"># handleStageInsert()</span>
+│   ├── <span class="file-tree-file">group.ts</span>          <span style="color: var(--color-text-muted)"># handleGroupInsert()</span>
+│   ├── <span class="file-tree-file">round.ts</span>          <span style="color: var(--color-text-muted)"># handleRoundInsert()</span>
+│   ├── <span class="file-tree-file">match.ts</span>          <span style="color: var(--color-text-muted)"># handleMatchInsert()</span>
+│   └── <span class="file-tree-file">match-game.ts</span>     <span style="color: var(--color-text-muted)"># handleMatchGameInsert()</span>
+│
+├── <span class="file-tree-folder">select-handlers/</span>      <span style="color: var(--color-text-muted)"># Same structure</span>
+├── <span class="file-tree-folder">update-handlers/</span>      <span style="color: var(--color-text-muted)"># Same structure</span>
+└── <span class="file-tree-folder">delete-handlers/</span>      <span style="color: var(--color-text-muted)"># Same structure</span>
+                </div>
+                
+                <h3>Supported Entities</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Table Name</th>
+                            <th>Handler File</th>
+                            <th>Complexity</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>'tournament'</code></td>
+                            <td><code>tournament.ts</code></td>
+                            <td><span class="badge badge-success">Simple</span></td>
+                            <td>Direct table operations</td>
+                        </tr>
+                        <tr>
+                            <td><code>'participant'</code></td>
+                            <td><code>participant.ts</code></td>
+                            <td><span class="badge badge-success">Simple</span></td>
+                            <td>Direct table operations</td>
+                        </tr>
+                        <tr>
+                            <td><code>'stage'</code></td>
+                            <td><code>stage.ts</code></td>
+                            <td><span class="badge badge-warning">Medium</span></td>
+                            <td>Includes StageSettings relation</td>
+                        </tr>
+                        <tr>
+                            <td><code>'group'</code></td>
+                            <td><code>group.ts</code></td>
+                            <td><span class="badge badge-success">Simple</span></td>
+                            <td>Direct table operations</td>
+                        </tr>
+                        <tr>
+                            <td><code>'round'</code></td>
+                            <td><code>round.ts</code></td>
+                            <td><span class="badge badge-success">Simple</span></td>
+                            <td>Direct table operations</td>
+                        </tr>
+                        <tr>
+                            <td><code>'match'</code></td>
+                            <td><code>match.ts</code></td>
+                            <td><span class="badge badge-danger">Complex</span></td>
+                            <td>Manages opponent results</td>
+                        </tr>
+                        <tr>
+                            <td><code>'match_game'</code></td>
+                            <td><code>match-game.ts</code></td>
+                            <td><span class="badge badge-danger">Complex</span></td>
+                            <td>Manages game results</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+            
+            <!-- Dispatch Pattern -->
+            <section>
+                <h2 id="dispatch-pattern">Dispatch Pattern</h2>
+                <p>
+                    Each CRUD operation starts with a dispatcher that routes to the appropriate 
+                    entity handler based on the table name.
+                </p>
+                
+                <div class="diagram">
+                    <div class="diagram-title">Operation Flow</div>
+                    <div class="flow-container">
+                        <div class="flow-row">
+                            <div class="flow-box flow-box-primary">
+                                <strong>SqlDatabase.insert()</strong><br>
+                                <code>insert('match', data)</code>
+                            </div>
+                        </div>
+                        <div class="flow-arrow flow-arrow-down"></div>
+                        <div class="flow-row">
+                            <div class="flow-box flow-box-secondary">
+                                <strong>handleInsert()</strong><br>
+                                <code>switch(table)</code>
+                            </div>
+                        </div>
+                        <div class="flow-arrow flow-arrow-down"></div>
+                        <div class="flow-row">
+                            <div class="flow-box">handleTournamentInsert()</div>
+                            <div class="flow-box">handleParticipantInsert()</div>
+                            <div class="flow-box flow-box-tertiary">handleMatchInsert()</div>
+                            <div class="flow-box">...</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">
+                            <span class="code-block-filename-icon">📄</span>
+                            src/storage-handlers/insert.ts
+                        </span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">export async function</span> <span class="token-function">handleInsert</span>&lt;T <span class="token-keyword">extends</span> <span class="token-keyword">keyof</span> <span class="token-type">DataTypes</span>&gt;(
+    db: <span class="token-type">DrizzleDatabase</span>,
+    table: T,
+    values: <span class="token-type">OmitId</span>&lt;DataTypes[T]&gt; | <span class="token-type">OmitId</span>&lt;DataTypes[T]&gt;[],
+): <span class="token-type">Promise</span>&lt;<span class="token-type">number</span> | <span class="token-type">boolean</span>&gt; {
+    <span class="token-keyword">switch</span> (table) {
+        <span class="token-keyword">case</span> <span class="token-string">'tournament'</span>:
+            <span class="token-keyword">return</span> <span class="token-function">handleTournamentInsert</span>(db, values);
+
+        <span class="token-keyword">case</span> <span class="token-string">'participant'</span>:
+            <span class="token-keyword">return</span> <span class="token-function">handleParticipantInsert</span>(db, values);
+
+        <span class="token-keyword">case</span> <span class="token-string">'stage'</span>:
+            <span class="token-keyword">return</span> <span class="token-function">handleStageInsert</span>(db, values);
+
+        <span class="token-keyword">case</span> <span class="token-string">'group'</span>:
+            <span class="token-keyword">return</span> <span class="token-function">handleGroupInsert</span>(db, values);
+
+        <span class="token-keyword">case</span> <span class="token-string">'round'</span>:
+            <span class="token-keyword">return</span> <span class="token-function">handleRoundInsert</span>(db, values);
+
+        <span class="token-keyword">case</span> <span class="token-string">'match'</span>:
+            <span class="token-keyword">return</span> <span class="token-function">handleMatchInsert</span>(db, values);
+
+        <span class="token-keyword">case</span> <span class="token-string">'match_game'</span>:
+            <span class="token-keyword">return</span> <span class="token-function">handleMatchGameInsert</span>(db, values);
+
+        <span class="token-keyword">default</span>:
+            <span class="token-keyword">return</span> <span class="token-keyword">false</span>;
+    }
+}</code></pre>
+                </div>
+            </section>
+            
+            <!-- Insert Handlers -->
+            <section>
+                <h2 id="insert-handlers">Insert Handlers</h2>
+                <p>Insert handlers create new records. They handle both single and batch inserts.</p>
+                
+                <h3>Return Values</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Input Type</th>
+                            <th>Success Return</th>
+                            <th>Failure Return</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Single object</td>
+                            <td><code>number</code> (new record ID)</td>
+                            <td><code>-1</code></td>
+                        </tr>
+                        <tr>
+                            <td>Array of objects</td>
+                            <td><code>true</code></td>
+                            <td><code>false</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h3>Simple Entity Insert (Participant)</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">
+                            <span class="code-block-filename-icon">📄</span>
+                            src/storage-handlers/insert-handlers/participant.ts
+                        </span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">export async function</span> <span class="token-function">handleParticipantInsert</span>(
+    db: <span class="token-type">DrizzleDatabase</span>,
+    values: <span class="token-type">OmitId</span>&lt;DataTypes[<span class="token-string">'participant'</span>]&gt; | <span class="token-type">OmitId</span>&lt;DataTypes[<span class="token-string">'participant'</span>]&gt;[],
+): <span class="token-type">Promise</span>&lt;<span class="token-type">number</span> | <span class="token-type">boolean</span>&gt; {
+    <span class="token-keyword">try</span> {
+        <span class="token-keyword">if</span> (Array.<span class="token-function">isArray</span>(values)) {
+            <span class="token-comment">// Batch insert</span>
+            <span class="token-keyword">const</span> transformedValues = values.<span class="token-function">map</span>(ParticipantTransformer.to);
+            <span class="token-keyword">await</span> db.<span class="token-function">insert</span>(participant).<span class="token-function">values</span>(transformedValues);
+            <span class="token-keyword">return</span> <span class="token-keyword">true</span>;
+        }
+
+        <span class="token-comment">// Single insert - return the new ID</span>
+        <span class="token-keyword">const</span> result = <span class="token-keyword">await</span> db
+            .<span class="token-function">insert</span>(participant)
+            .<span class="token-function">values</span>(ParticipantTransformer.<span class="token-function">to</span>(values))
+            .<span class="token-function">returning</span>({ id: participant.id });
+
+        <span class="token-keyword">return</span> result[<span class="token-number">0</span>]?.id ?? -<span class="token-number">1</span>;
+    } <span class="token-keyword">catch</span> {
+        <span class="token-keyword">return</span> Array.<span class="token-function">isArray</span>(values) ? <span class="token-keyword">false</span> : -<span class="token-number">1</span>;
+    }
+}</code></pre>
+                </div>
+                
+                <h3>Complex Entity Insert (Match)</h3>
+                <p>
+                    Match inserts are more complex because they must also create 
+                    <code>ParticipantMatchResult</code> records for both opponents.
+                </p>
+                
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">
+                            <span class="code-block-filename-icon">📄</span>
+                            src/storage-handlers/insert-handlers/match.ts
+                        </span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">async function</span> <span class="token-function">insertSingleMatch</span>(
+    db: <span class="token-type">DrizzleDatabase</span>,
+    value: <span class="token-type">OmitId</span>&lt;<span class="token-type">MatchWithExtra</span>&gt;,
+): <span class="token-type">Promise</span>&lt;<span class="token-type">number</span>&gt; {
+    <span class="token-comment">// 1. Transform and insert the match record</span>
+    <span class="token-keyword">const</span> matchData = MatchTransformer.<span class="token-function">to</span>(value);
+
+    <span class="token-keyword">const</span> matchResult = <span class="token-keyword">await</span> db
+        .<span class="token-function">insert</span>(match)
+        .<span class="token-function">values</span>({
+            ...matchData,
+            extra: value.extra ?? <span class="token-keyword">null</span>,
+        })
+        .<span class="token-function">returning</span>({ id: match.id });
+
+    <span class="token-keyword">const</span> matchId = matchResult[<span class="token-number">0</span>]?.id;
+
+    <span class="token-keyword">if</span> (!matchId) {
+        <span class="token-keyword">throw new</span> <span class="token-type">Error</span>(<span class="token-string">'Failed to insert match'</span>);
+    }
+
+    <span class="token-comment">// 2. Insert opponent1 result if provided</span>
+    <span class="token-keyword">if</span> (value.opponent1) {
+        <span class="token-keyword">await</span> db.<span class="token-function">insert</span>(participantMatchResult).<span class="token-function">values</span>({
+            participantId: value.opponent1.id != <span class="token-keyword">null</span> 
+                ? (value.opponent1.id <span class="token-keyword">as</span> <span class="token-type">number</span>) 
+                : <span class="token-keyword">null</span>,
+            forfeit: value.opponent1.forfeit ?? <span class="token-keyword">null</span>,
+            position: value.opponent1.position ?? <span class="token-keyword">null</span>,
+            score: value.opponent1.score ?? <span class="token-keyword">null</span>,
+            result: value.opponent1.result
+                ? MatchResultTransformer.<span class="token-function">to</span>(value.opponent1.result)
+                : <span class="token-keyword">null</span>,
+            <span class="token-comment">// Links this result to match as opponent1</span>
+            opponent1MatchId: matchId,
+        });
+    }
+
+    <span class="token-comment">// 3. Insert opponent2 result (similar)</span>
+    <span class="token-keyword">if</span> (value.opponent2) {
+        <span class="token-keyword">await</span> db.<span class="token-function">insert</span>(participantMatchResult).<span class="token-function">values</span>({
+            <span class="token-comment">// ... same structure</span>
+            opponent2MatchId: matchId,
+        });
+    }
+
+    <span class="token-keyword">return</span> matchId;
+}</code></pre>
+                </div>
+                
+                <div class="alert alert-info">
+                    <div class="alert-title">💡 Stage Insert with Settings</div>
+                    <p>
+                        Stage inserts also handle a related table (<code>StageSettings</code>), 
+                        but with a simpler 1:1 relationship pattern.
+                    </p>
+                </div>
+            </section>
+            
+            <!-- Select Handlers -->
+            <section>
+                <h2 id="select-handlers">Select Handlers</h2>
+                <p>Select handlers retrieve records with support for three query modes:</p>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Query Mode</th>
+                            <th>Input</th>
+                            <th>Returns</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>All records</td>
+                            <td><code>filter = undefined</code></td>
+                            <td><code>DataTypes[T][] | null</code></td>
+                        </tr>
+                        <tr>
+                            <td>By ID</td>
+                            <td><code>filter = number</code></td>
+                            <td><code>DataTypes[T] | null</code></td>
+                        </tr>
+                        <tr>
+                            <td>By filter</td>
+                            <td><code>filter = Partial&lt;DataTypes[T]&gt;</code></td>
+                            <td><code>DataTypes[T][] | null</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h3>Match Select Handler</h3>
+                <p>
+                    The match select handler demonstrates how to handle complex queries 
+                    with related records and proper ordering:
+                </p>
+                
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">
+                            <span class="code-block-filename-icon">📄</span>
+                            src/storage-handlers/select-handlers/match.ts
+                        </span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">export async function</span> <span class="token-function">handleMatchSelect</span>(
+    db: <span class="token-type">DrizzleDatabase</span>,
+    filter?: <span class="token-type">Partial</span>&lt;<span class="token-type">MatchWithExtra</span>&gt; | <span class="token-type">number</span>,
+): <span class="token-type">Promise</span>&lt;<span class="token-type">MatchWithExtra</span>[] | <span class="token-type">MatchWithExtra</span> | <span class="token-keyword">null</span>&gt; {
+    <span class="token-keyword">try</span> {
+        <span class="token-comment">// Mode 1: Select all</span>
+        <span class="token-keyword">if</span> (filter === <span class="token-keyword">undefined</span>) {
+            <span class="token-keyword">const</span> matches = <span class="token-keyword">await</span> db
+                .<span class="token-function">select</span>()
+                .<span class="token-function">from</span>(match)
+                .<span class="token-function">leftJoin</span>(round, <span class="token-function">eq</span>(match.roundId, round.id))
+                .<span class="token-function">orderBy</span>(<span class="token-function">asc</span>(round.number), <span class="token-function">asc</span>(match.number));
+
+            <span class="token-keyword">return</span> Promise.<span class="token-function">all</span>(
+                matches.<span class="token-function">map</span>(<span class="token-keyword">async</span> (row) => {
+                    <span class="token-keyword">const</span> opponents = <span class="token-keyword">await</span> <span class="token-function">getOpponents</span>(db, row.Match.id);
+                    <span class="token-keyword">return</span> MatchTransformer.<span class="token-function">from</span>({
+                        ...row.Match,
+                        ...opponents,
+                    });
+                }),
+            );
+        }
+
+        <span class="token-comment">// Mode 2: Select by ID</span>
+        <span class="token-keyword">if</span> (<span class="token-keyword">typeof</span> filter === <span class="token-string">'number'</span>) {
+            <span class="token-keyword">const</span> values = <span class="token-keyword">await</span> db
+                .<span class="token-function">select</span>()
+                .<span class="token-function">from</span>(match)
+                .<span class="token-function">where</span>(<span class="token-function">eq</span>(match.id, filter))
+                .<span class="token-function">limit</span>(<span class="token-number">1</span>);
+
+            <span class="token-keyword">if</span> (values.length === <span class="token-number">0</span>) {
+                <span class="token-keyword">return</span> <span class="token-keyword">null</span>;
+            }
+
+            <span class="token-keyword">const</span> opponents = <span class="token-keyword">await</span> <span class="token-function">getOpponents</span>(db, values[<span class="token-number">0</span>].id);
+            <span class="token-keyword">return</span> MatchTransformer.<span class="token-function">from</span>({
+                ...values[<span class="token-number">0</span>],
+                ...opponents,
+            });
+        }
+
+        <span class="token-comment">// Mode 3: Select by filter</span>
+        <span class="token-keyword">const</span> conditions = [];
+        <span class="token-keyword">if</span> (filter.id !== <span class="token-keyword">undefined</span>) 
+            conditions.<span class="token-function">push</span>(<span class="token-function">eq</span>(match.id, filter.id <span class="token-keyword">as</span> <span class="token-type">number</span>));
+        <span class="token-keyword">if</span> (filter.stage_id !== <span class="token-keyword">undefined</span>)
+            conditions.<span class="token-function">push</span>(<span class="token-function">eq</span>(match.stageId, filter.stage_id <span class="token-keyword">as</span> <span class="token-type">number</span>));
+        <span class="token-keyword">if</span> (filter.group_id !== <span class="token-keyword">undefined</span>)
+            conditions.<span class="token-function">push</span>(<span class="token-function">eq</span>(match.groupId, filter.group_id <span class="token-keyword">as</span> <span class="token-type">number</span>));
+        <span class="token-comment">// ... more filter conditions</span>
+
+        <span class="token-keyword">const</span> matches = <span class="token-keyword">await</span> db
+            .<span class="token-function">select</span>()
+            .<span class="token-function">from</span>(match)
+            .<span class="token-function">leftJoin</span>(round, <span class="token-function">eq</span>(match.roundId, round.id))
+            .<span class="token-function">where</span>(conditions.length > <span class="token-number">0</span> ? <span class="token-function">and</span>(...conditions) : <span class="token-keyword">undefined</span>)
+            .<span class="token-function">orderBy</span>(<span class="token-function">asc</span>(round.number), <span class="token-function">asc</span>(match.number));
+
+        <span class="token-comment">// Fetch opponents for each match</span>
+        <span class="token-keyword">return</span> Promise.<span class="token-function">all</span>(
+            matches.<span class="token-function">map</span>(<span class="token-keyword">async</span> (row) => {
+                <span class="token-keyword">const</span> opponents = <span class="token-keyword">await</span> <span class="token-function">getOpponents</span>(db, row.Match.id);
+                <span class="token-keyword">return</span> MatchTransformer.<span class="token-function">from</span>({ ...row.Match, ...opponents });
+            }),
+        );
+    } <span class="token-keyword">catch</span> {
+        <span class="token-keyword">return</span> [];
+    }
+}</code></pre>
+                </div>
+                
+                <h3>Helper: getOpponents()</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">Fetching Related Opponent Records</span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">async function</span> <span class="token-function">getOpponents</span>(db: <span class="token-type">DrizzleDatabase</span>, matchId: <span class="token-type">number</span>) {
+    <span class="token-comment">// Opponent 1 is linked via opponent1MatchId</span>
+    <span class="token-keyword">const</span> opponent1Results = <span class="token-keyword">await</span> db
+        .<span class="token-function">select</span>()
+        .<span class="token-function">from</span>(participantMatchResult)
+        .<span class="token-function">where</span>(<span class="token-function">eq</span>(participantMatchResult.opponent1MatchId, matchId))
+        .<span class="token-function">limit</span>(<span class="token-number">1</span>);
+
+    <span class="token-comment">// Opponent 2 is linked via opponent2MatchId</span>
+    <span class="token-keyword">const</span> opponent2Results = <span class="token-keyword">await</span> db
+        .<span class="token-function">select</span>()
+        .<span class="token-function">from</span>(participantMatchResult)
+        .<span class="token-function">where</span>(<span class="token-function">eq</span>(participantMatchResult.opponent2MatchId, matchId))
+        .<span class="token-function">limit</span>(<span class="token-number">1</span>);
+
+    <span class="token-keyword">return</span> {
+        opponent1Result: opponent1Results[<span class="token-number">0</span>] ?? <span class="token-keyword">null</span>,
+        opponent2Result: opponent2Results[<span class="token-number">0</span>] ?? <span class="token-keyword">null</span>,
+    };
+}</code></pre>
+                </div>
+            </section>
+            
+            <!-- Update Handlers -->
+            <section>
+                <h2 id="update-handlers">Update Handlers</h2>
+                <p>
+                    Update handlers modify existing records. They support updating by ID 
+                    or by filter, and always return a boolean indicating success.
+                </p>
+                
+                <h3>Match Update Handler</h3>
+                <p>
+                    The match update handler is particularly complex because it must handle 
+                    upsert logic for opponent results and properly merge JSON extras.
+                </p>
+                
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">
+                            <span class="code-block-filename-icon">📄</span>
+                            src/storage-handlers/update-handlers/match.ts
+                        </span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">async function</span> <span class="token-function">updateById</span>(
+    db: <span class="token-type">DrizzleDatabase</span>,
+    id: <span class="token-type">number</span>,
+    value: <span class="token-type">Partial</span>&lt;<span class="token-type">MatchWithExtra</span>&gt;,
+    previousExtra?: <span class="token-type">JsonValue</span> | <span class="token-keyword">null</span>,
+) {
+    <span class="token-comment">// Fetch existing extra if not provided</span>
+    <span class="token-keyword">let</span> extraSource = previousExtra ?? <span class="token-keyword">null</span>;
+    <span class="token-keyword">if</span> (previousExtra === <span class="token-keyword">undefined</span>) {
+        <span class="token-keyword">const</span> existing = <span class="token-keyword">await</span> db
+            .<span class="token-function">select</span>({ extra: match.extra })
+            .<span class="token-function">from</span>(match)
+            .<span class="token-function">where</span>(<span class="token-function">eq</span>(match.id, id))
+            .<span class="token-function">limit</span>(<span class="token-number">1</span>);
+        extraSource = existing[<span class="token-number">0</span>]?.extra ?? <span class="token-keyword">null</span>;
+    }
+
+    <span class="token-comment">// Merge extras (custom fields + explicit extra property)</span>
+    <span class="token-keyword">const</span> extra = <span class="token-function">matchExtraFromInput</span>(value, extraSource);
+
+    <span class="token-comment">// Build update object (only include provided fields)</span>
+    <span class="token-keyword">const</span> updateData: <span class="token-type">Record</span>&lt;<span class="token-type">string</span>, <span class="token-type">unknown</span>&gt; = {};
+    <span class="token-keyword">if</span> (value.stage_id !== <span class="token-keyword">undefined</span>) updateData.stageId = value.stage_id;
+    <span class="token-keyword">if</span> (value.status !== <span class="token-keyword">undefined</span>)
+        updateData.status = MatchStatusTransformer.<span class="token-function">to</span>(value.status);
+    <span class="token-keyword">if</span> (extra !== <span class="token-keyword">undefined</span>) updateData.extra = extra;
+    <span class="token-comment">// ... more field mappings</span>
+
+    <span class="token-comment">// Update match record if there are changes</span>
+    <span class="token-keyword">if</span> (Object.<span class="token-function">keys</span>(updateData).length > <span class="token-number">0</span>) {
+        <span class="token-keyword">await</span> db.<span class="token-function">update</span>(match).<span class="token-function">set</span>(updateData).<span class="token-function">where</span>(<span class="token-function">eq</span>(match.id, id));
+    }
+
+    <span class="token-comment">// Upsert opponent results</span>
+    <span class="token-keyword">if</span> (value.opponent1) {
+        <span class="token-keyword">await</span> <span class="token-function">upsertParticipantResult</span>(db, id, value.opponent1, <span class="token-keyword">true</span>);
+    }
+    <span class="token-keyword">if</span> (value.opponent2) {
+        <span class="token-keyword">await</span> <span class="token-function">upsertParticipantResult</span>(db, id, value.opponent2, <span class="token-keyword">false</span>);
+    }
+}</code></pre>
+                </div>
+                
+                <h3>Upsert Pattern for Results</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">Upsert Logic for Opponent Results</span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">async function</span> <span class="token-function">upsertParticipantResult</span>(
+    db: <span class="token-type">DrizzleDatabase</span>,
+    matchId: <span class="token-type">number</span>,
+    value: <span class="token-type">ParticipantResultInput</span>,
+    isOpponent1: <span class="token-type">boolean</span>,
+) {
+    <span class="token-comment">// Check if result already exists</span>
+    <span class="token-keyword">const</span> existingResults = <span class="token-keyword">await</span> db
+        .<span class="token-function">select</span>()
+        .<span class="token-function">from</span>(participantMatchResult)
+        .<span class="token-function">where</span>(
+            isOpponent1
+                ? <span class="token-function">eq</span>(participantMatchResult.opponent1MatchId, matchId)
+                : <span class="token-function">eq</span>(participantMatchResult.opponent2MatchId, matchId),
+        )
+        .<span class="token-function">limit</span>(<span class="token-number">1</span>);
+
+    <span class="token-keyword">const</span> resultData = {
+        participantId: value.id != <span class="token-keyword">null</span> ? (value.id <span class="token-keyword">as</span> <span class="token-type">number</span>) : <span class="token-keyword">null</span>,
+        forfeit: value.forfeit ?? <span class="token-keyword">null</span>,
+        score: value.score ?? <span class="token-keyword">null</span>,
+        result: value.result ? MatchResultTransformer.<span class="token-function">to</span>(value.result) : <span class="token-keyword">null</span>,
+    };
+
+    <span class="token-keyword">if</span> (existingResults.length > <span class="token-number">0</span>) {
+        <span class="token-comment">// UPDATE existing record</span>
+        <span class="token-keyword">await</span> db
+            .<span class="token-function">update</span>(participantMatchResult)
+            .<span class="token-function">set</span>(resultData)
+            .<span class="token-function">where</span>(<span class="token-function">eq</span>(participantMatchResult.id, existingResults[<span class="token-number">0</span>].id));
+    } <span class="token-keyword">else</span> {
+        <span class="token-comment">// INSERT new record</span>
+        <span class="token-keyword">await</span> db.<span class="token-function">insert</span>(participantMatchResult).<span class="token-function">values</span>({
+            ...resultData,
+            ...(isOpponent1
+                ? { opponent1MatchId: matchId }
+                : { opponent2MatchId: matchId }),
+        });
+    }
+}</code></pre>
+                </div>
+            </section>
+            
+            <!-- Delete Handlers -->
+            <section>
+                <h2 id="delete-handlers">Delete Handlers</h2>
+                <p>
+                    Delete handlers remove records. They support deleting all records 
+                    or filtering by partial match.
+                </p>
+                
+                <div class="alert alert-warning">
+                    <div class="alert-title">⚠️ Cascade Behavior</div>
+                    <p>
+                        The current implementation does <strong>not</strong> automatically delete related records. 
+                        Deleting a Stage does not delete its Groups, Rounds, or Matches. This is intentional 
+                        to allow brackets-manager to control the deletion order.
+                    </p>
+                </div>
+                
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">Delete Handler Pattern</span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">export async function</span> <span class="token-function">handleStageDelete</span>(
+    db: <span class="token-type">DrizzleDatabase</span>,
+    filter?: <span class="token-type">Partial</span>&lt;DataTypes[<span class="token-string">'stage'</span>]&gt;,
+): <span class="token-type">Promise</span>&lt;<span class="token-type">boolean</span>&gt; {
+    <span class="token-keyword">try</span> {
+        <span class="token-keyword">if</span> (filter === <span class="token-keyword">undefined</span>) {
+            <span class="token-comment">// Delete all stages and their settings</span>
+            <span class="token-keyword">await</span> db.<span class="token-function">delete</span>(stageSettings);
+            <span class="token-keyword">await</span> db.<span class="token-function">delete</span>(stage);
+            <span class="token-keyword">return</span> <span class="token-keyword">true</span>;
+        }
+
+        <span class="token-comment">// Build conditions from filter</span>
+        <span class="token-keyword">const</span> conditions = [];
+        <span class="token-keyword">if</span> (filter.id !== <span class="token-keyword">undefined</span>) 
+            conditions.<span class="token-function">push</span>(<span class="token-function">eq</span>(stage.id, filter.id <span class="token-keyword">as</span> <span class="token-type">number</span>));
+        <span class="token-keyword">if</span> (filter.tournament_id !== <span class="token-keyword">undefined</span>)
+            conditions.<span class="token-function">push</span>(<span class="token-function">eq</span>(stage.tournamentId, filter.tournament_id <span class="token-keyword">as</span> <span class="token-type">number</span>));
+        <span class="token-comment">// ... more conditions</span>
+
+        <span class="token-comment">// Delete settings first (child), then stages (parent)</span>
+        <span class="token-keyword">const</span> stagesToDelete = <span class="token-keyword">await</span> db
+            .<span class="token-function">select</span>({ id: stage.id })
+            .<span class="token-function">from</span>(stage)
+            .<span class="token-function">where</span>(<span class="token-function">and</span>(...conditions));
+
+        <span class="token-keyword">for</span> (<span class="token-keyword">const</span> s <span class="token-keyword">of</span> stagesToDelete) {
+            <span class="token-keyword">await</span> db
+                .<span class="token-function">delete</span>(stageSettings)
+                .<span class="token-function">where</span>(<span class="token-function">eq</span>(stageSettings.stageId, s.id));
+        }
+
+        <span class="token-keyword">await</span> db
+            .<span class="token-function">delete</span>(stage)
+            .<span class="token-function">where</span>(conditions.length > <span class="token-number">0</span> ? <span class="token-function">and</span>(...conditions) : <span class="token-keyword">undefined</span>);
+
+        <span class="token-keyword">return</span> <span class="token-keyword">true</span>;
+    } <span class="token-keyword">catch</span> {
+        <span class="token-keyword">return</span> <span class="token-keyword">false</span>;
+    }
+}</code></pre>
+                </div>
+            </section>
+            
+            <!-- Complex Entities -->
+            <section>
+                <h2 id="complex-entities">Complex Entity Handling</h2>
+                <p>
+                    Some entity types require special handling due to their related records:
+                </p>
+                
+                <div class="card-grid">
+                    <div class="card">
+                        <h4>🏆 Tournament</h4>
+                        <p class="card-description">
+                            <strong>1:N relationships.</strong> Tournament is the top-level container. 
+                            Stages and Participants both reference Tournament via <code>tournamentId</code> 
+                            foreign key.
+                        </p>
+                    </div>
+                    
+                    <div class="card">
+                        <h4>📊 Stage + StageSettings</h4>
+                        <p class="card-description">
+                            <strong>1:1 relationship.</strong> Stage settings are stored in a separate table 
+                            linked by <code>stageId</code>. Insertions create both records, updates may 
+                            modify either, and deletions remove both.
+                        </p>
+                    </div>
+                    
+                    <div class="card">
+                        <h4>⚔️ Match + ParticipantMatchResult</h4>
+                        <p class="card-description">
+                            <strong>1:2 relationship.</strong> Each match has two opponent result records. 
+                            The dual-FK pattern (opponent1MatchId, opponent2MatchId) requires special 
+                            query logic to fetch and upsert results.
+                        </p>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Extending -->
+            <section>
+                <h2 id="extending">Adding New Entities</h2>
+                <p>To add a new entity type to the storage layer:</p>
+                
+                <ol>
+                    <li>
+                        <strong>Define the schema</strong> in <code>src/db/schema/</code>
+                        <ul>
+                            <li>Create table definition with Drizzle</li>
+                            <li>Add relations if needed</li>
+                            <li>Export types</li>
+                        </ul>
+                    </li>
+                    <li>
+                        <strong>Create transformers</strong> in <code>src/transformers/model/</code>
+                        <ul>
+                            <li>Add <code>to()</code> and <code>from()</code> methods</li>
+                            <li>Handle field name mapping</li>
+                        </ul>
+                    </li>
+                    <li>
+                        <strong>Create handlers</strong> in each <code>storage-handlers/*-handlers/</code>
+                        <ul>
+                            <li><code>insert-handlers/new-entity.ts</code></li>
+                            <li><code>select-handlers/new-entity.ts</code></li>
+                            <li><code>update-handlers/new-entity.ts</code></li>
+                            <li><code>delete-handlers/new-entity.ts</code></li>
+                        </ul>
+                    </li>
+                    <li>
+                        <strong>Add dispatch cases</strong> in <code>storage-handlers/*.ts</code>
+                        <ul>
+                            <li>Add case to switch statement</li>
+                            <li>Import new handler</li>
+                        </ul>
+                    </li>
+                </ol>
+            </section>
+            
+            <!-- Navigation Footer -->
+            <footer class="doc-footer">
+                <div class="footer-nav">
+                    <span class="footer-nav-label">Previous</span>
+                    <a href="database-schema.html" class="footer-nav-link">← Database Schema</a>
+                </div>
+                <div class="footer-nav">
+                    <span class="footer-nav-label">Next</span>
+                    <a href="transformers.html" class="footer-nav-link">Transformers →</a>
+                </div>
+            </footer>
+        </main>
+    </div>
+    
+    <script>
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+    </script>
+</body>
+</html>
+

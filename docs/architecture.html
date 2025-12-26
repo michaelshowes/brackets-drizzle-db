@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Architecture - Brackets Drizzle DB</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/schema-diagrams.css">
+    <link rel="stylesheet" href="css/code-examples.css">
+</head>
+<body>
+    <button class="mobile-menu-toggle" onclick="toggleSidebar()">☰ Menu</button>
+    
+    <div class="page-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">Brackets Drizzle DB</div>
+                <div class="sidebar-version">v2.1.0</div>
+            </div>
+            
+            <nav>
+                <div class="nav-section">
+                    <div class="nav-section-title">Getting Started</div>
+                    <ul class="nav-list">
+                        <li class="nav-item"><a href="index.html" class="nav-link">Overview</a></li>
+                        <li class="nav-item"><a href="architecture.html" class="nav-link active">Architecture</a></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Core Concepts</div>
+                    <ul class="nav-list">
+                        <li class="nav-item"><a href="database-schema.html" class="nav-link">Database Schema</a></li>
+                        <li class="nav-item"><a href="storage-handlers.html" class="nav-link">Storage Handlers</a></li>
+                        <li class="nav-item"><a href="transformers.html" class="nav-link">Transformers</a></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Reference</div>
+                    <ul class="nav-list">
+                        <li class="nav-item"><a href="api-reference.html" class="nav-link">API Reference</a></li>
+                        <li class="nav-item"><a href="scaling-guide.html" class="nav-link">Scaling Guide</a></li>
+                    </ul>
+                </div>
+            </nav>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <nav class="breadcrumbs">
+                <a href="index.html">Home</a>
+                <span class="breadcrumb-separator">›</span>
+                <span>Architecture</span>
+            </nav>
+            
+            <div class="page-header">
+                <h1>System Architecture</h1>
+                <p class="page-subtitle">
+                    Deep dive into the internal structure, design patterns, and data flow of brackets-drizzle-db
+                </p>
+            </div>
+            
+            <div class="toc">
+                <div class="toc-title">On This Page</div>
+                <ul class="toc-list">
+                    <li><a href="#design-philosophy">Design Philosophy</a></li>
+                    <li><a href="#layer-architecture">Layer Architecture</a></li>
+                    <li><a href="#crud-interface">CrudInterface Implementation</a></li>
+                    <li><a href="#data-flow">Data Flow Patterns</a></li>
+                    <li><a href="#dispatch-pattern">The Dispatch Pattern</a></li>
+                    <li><a href="#type-safety">Type Safety Strategy</a></li>
+                    <li><a href="#error-handling">Error Handling</a></li>
+                </ul>
+            </div>
+            
+            <!-- Design Philosophy -->
+            <section>
+                <h2 id="design-philosophy">Design Philosophy</h2>
+                <p>The architecture follows several key principles that guide its design:</p>
+                
+                <div class="card-grid">
+                    <div class="card">
+                        <h4>🎯 Single Responsibility</h4>
+                        <p class="card-description">
+                            Each file has one clear purpose. Handlers handle database operations, 
+                            transformers convert data, and schema files define tables. No mixing of concerns.
+                        </p>
+                    </div>
+                    
+                    <div class="card">
+                        <h4>🔌 Adapter Pattern</h4>
+                        <p class="card-description">
+                            The <code>SqlDatabase</code> class adapts Drizzle ORM to the <code>CrudInterface</code> 
+                            expected by brackets-manager, allowing seamless integration.
+                        </p>
+                    </div>
+                    
+                    <div class="card">
+                        <h4>🔄 Bidirectional Transformation</h4>
+                        <p class="card-description">
+                            Transformers provide <code>to()</code> and <code>from()</code> methods to convert 
+                            between external API models and internal database schemas.
+                        </p>
+                    </div>
+                    
+                    <div class="card">
+                        <h4>📦 Entity Isolation</h4>
+                        <p class="card-description">
+                            Each entity (participant, stage, match, etc.) has its own handler files, 
+                            making the codebase easy to navigate and modify.
+                        </p>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Layer Architecture -->
+            <section>
+                <h2 id="layer-architecture">Layer Architecture</h2>
+                <p>The system is organized into distinct layers, each with specific responsibilities:</p>
+                
+                <div class="diagram">
+                    <div class="diagram-title">Architectural Layers</div>
+                    <div class="data-flow">
+                        <div class="data-flow-step">
+                            <div class="data-flow-number">1</div>
+                            <div class="data-flow-content">
+                                <div class="data-flow-title">Interface Layer — <code>SqlDatabase</code></div>
+                                <div class="data-flow-description">
+                                    Implements <code>CrudInterface</code> from brackets-manager. Exposes <code>insert()</code>, 
+                                    <code>select()</code>, <code>update()</code>, and <code>delete()</code> methods. 
+                                    This is the only public API consumers interact with.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="data-flow-step">
+                            <div class="data-flow-number">2</div>
+                            <div class="data-flow-content">
+                                <div class="data-flow-title">Dispatch Layer — Storage Handlers</div>
+                                <div class="data-flow-description">
+                                    Routes operations to entity-specific handlers based on the table name.
+                                    Uses a switch statement to dispatch to the appropriate handler function.
+                                    Located in <code>storage-handlers/{insert,select,update,delete}.ts</code>.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="data-flow-step">
+                            <div class="data-flow-number">3</div>
+                            <div class="data-flow-content">
+                                <div class="data-flow-title">Handler Layer — Entity Handlers</div>
+                                <div class="data-flow-description">
+                                    Entity-specific logic for database operations. Each entity has four handler files
+                                    (one per CRUD operation). Handles complex entities like Match that have 
+                                    related records (opponent results).
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="data-flow-step">
+                            <div class="data-flow-number">4</div>
+                            <div class="data-flow-content">
+                                <div class="data-flow-title">Transform Layer — Transformers</div>
+                                <div class="data-flow-description">
+                                    Converts data between brackets-model types and Drizzle schema types.
+                                    Includes both enum transformers (status codes) and model transformers (full entities).
+                                    Handles field name mapping (e.g., <code>stage_id</code> → <code>stageId</code>).
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="data-flow-step">
+                            <div class="data-flow-number">5</div>
+                            <div class="data-flow-content">
+                                <div class="data-flow-title">Schema Layer — Drizzle ORM</div>
+                                <div class="data-flow-description">
+                                    PostgreSQL table definitions using Drizzle ORM's type-safe schema builder.
+                                    Defines tables, columns, types, relations, and constraints.
+                                    Generates TypeScript types from schema definitions.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="data-flow-step">
+                            <div class="data-flow-number">6</div>
+                            <div class="data-flow-content">
+                                <div class="data-flow-title">Database Layer — PostgreSQL</div>
+                                <div class="data-flow-description">
+                                    The actual PostgreSQL database where tournament data is persisted.
+                                    Connected via the postgres.js driver through Drizzle.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- CrudInterface Implementation -->
+            <section>
+                <h2 id="crud-interface">CrudInterface Implementation</h2>
+                <p>
+                    The <code>SqlDatabase</code> class is the heart of this package. It implements the 
+                    <code>CrudInterface</code> from brackets-manager, which defines the contract for 
+                    any storage backend.
+                </p>
+                
+                <h3>The CrudInterface Contract</h3>
+                <p>brackets-manager expects any storage to implement these methods:</p>
+                
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">CrudInterface (from brackets-manager)</span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">interface</span> <span class="token-type">CrudInterface</span> {
+    <span class="token-comment">// Insert a single record, returns the new ID</span>
+    <span class="token-function">insert</span>&lt;T&gt;(table: T, value: <span class="token-type">OmitId</span>&lt;DataTypes[T]&gt;): <span class="token-type">Promise</span>&lt;<span class="token-type">number</span>&gt;;
+    
+    <span class="token-comment">// Insert multiple records, returns success boolean</span>
+    <span class="token-function">insert</span>&lt;T&gt;(table: T, values: <span class="token-type">OmitId</span>&lt;DataTypes[T]&gt;[]): <span class="token-type">Promise</span>&lt;<span class="token-type">boolean</span>&gt;;
+    
+    <span class="token-comment">// Select all records from a table</span>
+    <span class="token-function">select</span>&lt;T&gt;(table: T): <span class="token-type">Promise</span>&lt;DataTypes[T][] | <span class="token-keyword">null</span>&gt;;
+    
+    <span class="token-comment">// Select a single record by ID</span>
+    <span class="token-function">select</span>&lt;T&gt;(table: T, id: <span class="token-type">number</span>): <span class="token-type">Promise</span>&lt;DataTypes[T] | <span class="token-keyword">null</span>&gt;;
+    
+    <span class="token-comment">// Select records matching a filter</span>
+    <span class="token-function">select</span>&lt;T&gt;(table: T, filter: <span class="token-type">Partial</span>&lt;DataTypes[T]&gt;): <span class="token-type">Promise</span>&lt;DataTypes[T][] | <span class="token-keyword">null</span>&gt;;
+    
+    <span class="token-comment">// Update a single record by ID</span>
+    <span class="token-function">update</span>&lt;T&gt;(table: T, id: <span class="token-type">number</span>, value: DataTypes[T]): <span class="token-type">Promise</span>&lt;<span class="token-type">boolean</span>&gt;;
+    
+    <span class="token-comment">// Update records matching a filter</span>
+    <span class="token-function">update</span>&lt;T&gt;(table: T, filter: <span class="token-type">Partial</span>&lt;DataTypes[T]&gt;, value: <span class="token-type">Partial</span>&lt;DataTypes[T]&gt;): <span class="token-type">Promise</span>&lt;<span class="token-type">boolean</span>&gt;;
+    
+    <span class="token-comment">// Delete all records from a table</span>
+    <span class="token-function">delete</span>&lt;T&gt;(table: T): <span class="token-type">Promise</span>&lt;<span class="token-type">boolean</span>&gt;;
+    
+    <span class="token-comment">// Delete records matching a filter</span>
+    <span class="token-function">delete</span>&lt;T&gt;(table: T, filter: <span class="token-type">Partial</span>&lt;DataTypes[T]&gt;): <span class="token-type">Promise</span>&lt;<span class="token-type">boolean</span>&gt;;
+}</code></pre>
+                </div>
+                
+                <h3>SqlDatabase Implementation</h3>
+                <p>Here's how our <code>SqlDatabase</code> class implements this interface:</p>
+                
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">
+                            <span class="code-block-filename-icon">📄</span>
+                            src/storage.ts
+                        </span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">export class</span> <span class="token-type">SqlDatabase</span> <span class="token-keyword">implements</span> <span class="token-type">CrudInterface</span> {
+    <span class="token-keyword">private</span> db: <span class="token-type">DrizzleDatabase</span>;
+
+    <span class="token-function">constructor</span>(db: <span class="token-type">DrizzleDatabase</span>) {
+        <span class="token-keyword">this</span>.db = db;
+    }
+
+    <span class="token-comment">// Each method delegates to a handler function</span>
+    <span class="token-function">insert</span>&lt;T <span class="token-keyword">extends</span> <span class="token-keyword">keyof</span> <span class="token-type">DataTypes</span>&gt;(
+        table: T,
+        values: <span class="token-type">OmitId</span>&lt;DataTypes[T]&gt; | <span class="token-type">OmitId</span>&lt;DataTypes[T]&gt;[],
+    ): <span class="token-type">Promise</span>&lt;<span class="token-type">number</span> | <span class="token-type">boolean</span>&gt; {
+        <span class="token-keyword">return</span> <span class="token-function">handleInsert</span>(<span class="token-keyword">this</span>.db, table, values);
+    }
+
+    <span class="token-comment">// Select, Update, Delete follow the same pattern...</span>
+}</code></pre>
+                </div>
+                
+                <div class="alert alert-info">
+                    <div class="alert-title">💡 Key Insight: Method Overloading</div>
+                    <p>
+                        TypeScript method overloading is used extensively. The same method name handles 
+                        different input types (single vs array, ID vs filter). The return type changes 
+                        accordingly (number for single insert, boolean for batch).
+                    </p>
+                </div>
+            </section>
+            
+            <!-- Data Flow -->
+            <section>
+                <h2 id="data-flow">Data Flow Patterns</h2>
+                <p>Let's trace how data flows through the system for each CRUD operation:</p>
+                
+                <h3>Insert Flow</h3>
+                <div class="diagram">
+                    <div class="diagram-title">Insert Operation: Creating a Match</div>
+                    <div class="flow-container">
+                        <div class="flow-row">
+                            <div class="flow-box flow-box-primary">
+                                <strong>BracketsManager</strong><br>
+                                <code>manager.create.stage(...)</code>
+                            </div>
+                        </div>
+                        <div class="flow-arrow flow-arrow-down"></div>
+                        <div class="flow-row">
+                            <div class="flow-box">
+                                <strong>SqlDatabase.insert()</strong><br>
+                                <code>insert('match', matchData)</code>
+                            </div>
+                        </div>
+                        <div class="flow-arrow flow-arrow-down"></div>
+                        <div class="flow-row">
+                            <div class="flow-box">
+                                <strong>handleInsert()</strong><br>
+                                <code>switch(table) → 'match'</code>
+                            </div>
+                        </div>
+                        <div class="flow-arrow flow-arrow-down"></div>
+                        <div class="flow-row">
+                            <div class="flow-box flow-box-secondary">
+                                <strong>handleMatchInsert()</strong><br>
+                                Entity-specific logic
+                            </div>
+                        </div>
+                        <div class="flow-arrow flow-arrow-down"></div>
+                        <div class="flow-row">
+                            <div class="flow-box">
+                                <strong>MatchTransformer.to()</strong><br>
+                                Convert to DB format
+                            </div>
+                            <span class="flow-arrow flow-arrow-right"></span>
+                            <div class="flow-box flow-box-tertiary">
+                                <strong>db.insert(match)</strong><br>
+                                Drizzle ORM insert
+                            </div>
+                        </div>
+                        <div class="flow-arrow flow-arrow-down"></div>
+                        <div class="flow-row">
+                            <div class="flow-box">
+                                <strong>Insert Opponent Results</strong><br>
+                                <code>participantMatchResult</code>
+                            </div>
+                        </div>
+                        <div class="flow-arrow flow-arrow-down"></div>
+                        <div class="flow-row">
+                            <div class="flow-box flow-box-tertiary">
+                                <strong>Return match.id</strong><br>
+                                Back to brackets-manager
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <h3>Select Flow</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">Select Flow Example</span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-comment">// 1. BracketsManager calls select</span>
+<span class="token-keyword">const</span> matches = <span class="token-keyword">await</span> storage.<span class="token-function">select</span>(<span class="token-string">'match'</span>, { stage_id: <span class="token-number">1</span> });
+
+<span class="token-comment">// 2. SqlDatabase.select() delegates to handleSelect()</span>
+
+<span class="token-comment">// 3. handleSelect() routes to handleMatchSelect()</span>
+
+<span class="token-comment">// 4. handleMatchSelect() builds Drizzle query:</span>
+<span class="token-keyword">const</span> matches = <span class="token-keyword">await</span> db
+    .<span class="token-function">select</span>()
+    .<span class="token-function">from</span>(match)
+    .<span class="token-function">leftJoin</span>(round, <span class="token-function">eq</span>(match.roundId, round.id))
+    .<span class="token-function">where</span>(<span class="token-function">eq</span>(match.stageId, filter.stage_id))
+    .<span class="token-function">orderBy</span>(<span class="token-function">asc</span>(round.number), <span class="token-function">asc</span>(match.number));
+
+<span class="token-comment">// 5. Fetch opponent results for each match</span>
+<span class="token-keyword">const</span> opponents = <span class="token-keyword">await</span> <span class="token-function">getOpponents</span>(db, matchId);
+
+<span class="token-comment">// 6. MatchTransformer.from() converts back to API format</span>
+<span class="token-keyword">return</span> MatchTransformer.<span class="token-function">from</span>({ ...row.Match, ...opponents });</code></pre>
+                </div>
+            </section>
+            
+            <!-- Dispatch Pattern -->
+            <section>
+                <h2 id="dispatch-pattern">The Dispatch Pattern</h2>
+                <p>
+                    All CRUD operations use a dispatcher that routes to entity-specific handlers.
+                    This pattern provides clean separation while maintaining a unified API.
+                </p>
+                
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">
+                            <span class="code-block-filename-icon">📄</span>
+                            src/storage-handlers/insert.ts
+                        </span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">export async function</span> <span class="token-function">handleInsert</span>&lt;T <span class="token-keyword">extends</span> <span class="token-keyword">keyof</span> <span class="token-type">DataTypes</span>&gt;(
+    db: <span class="token-type">DrizzleDatabase</span>,
+    table: T,
+    values: <span class="token-type">OmitId</span>&lt;DataTypes[T]&gt; | <span class="token-type">OmitId</span>&lt;DataTypes[T]&gt;[],
+): <span class="token-type">Promise</span>&lt;<span class="token-type">number</span> | <span class="token-type">boolean</span>&gt; {
+    <span class="token-keyword">switch</span> (table) {
+        <span class="token-keyword">case</span> <span class="token-string">'participant'</span>:
+            <span class="token-keyword">return</span> <span class="token-function">handleParticipantInsert</span>(db, values);
+        
+        <span class="token-keyword">case</span> <span class="token-string">'stage'</span>:
+            <span class="token-keyword">return</span> <span class="token-function">handleStageInsert</span>(db, values);
+        
+        <span class="token-keyword">case</span> <span class="token-string">'group'</span>:
+            <span class="token-keyword">return</span> <span class="token-function">handleGroupInsert</span>(db, values);
+        
+        <span class="token-keyword">case</span> <span class="token-string">'round'</span>:
+            <span class="token-keyword">return</span> <span class="token-function">handleRoundInsert</span>(db, values);
+        
+        <span class="token-keyword">case</span> <span class="token-string">'match'</span>:
+            <span class="token-keyword">return</span> <span class="token-function">handleMatchInsert</span>(db, values);
+        
+        <span class="token-keyword">case</span> <span class="token-string">'match_game'</span>:
+            <span class="token-keyword">return</span> <span class="token-function">handleMatchGameInsert</span>(db, values);
+        
+        <span class="token-keyword">default</span>:
+            <span class="token-keyword">return</span> <span class="token-keyword">false</span>;
+    }
+}</code></pre>
+                </div>
+                
+                <h3>Benefits of This Pattern</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Benefit</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Isolation</strong></td>
+                            <td>Changes to one entity's handler don't affect others</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Testability</strong></td>
+                            <td>Individual handlers can be unit tested in isolation</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Extensibility</strong></td>
+                            <td>Adding a new entity type is simply adding a new case</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Readability</strong></td>
+                            <td>Clear separation makes code easy to navigate</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+            
+            <!-- Type Safety Strategy -->
+            <section>
+                <h2 id="type-safety">Type Safety Strategy</h2>
+                <p>
+                    The codebase leverages TypeScript and Drizzle ORM's type inference 
+                    extensively to ensure type safety throughout the data flow.
+                </p>
+                
+                <h3>Type Layers</h3>
+                <div class="card-grid">
+                    <div class="card">
+                        <h4>📦 brackets-model Types</h4>
+                        <p class="card-description">
+                            External types from the brackets-model package:<br>
+                            <code>Stage</code>, <code>Match</code>, <code>Participant</code>, etc.
+                        </p>
+                        <span class="badge badge-primary">API Layer</span>
+                    </div>
+                    
+                    <div class="card">
+                        <h4>🗄️ Drizzle Inferred Types</h4>
+                        <p class="card-description">
+                            Types inferred from schema using <code>$inferSelect</code> and <code>$inferInsert</code>.
+                            Automatically match the database structure.
+                        </p>
+                        <span class="badge badge-secondary">DB Layer</span>
+                    </div>
+                    
+                    <div class="card">
+                        <h4>🔄 Custom Extended Types</h4>
+                        <p class="card-description">
+                            Extended types like <code>MatchWithExtra</code> that add the 
+                            <code>extra</code> JSON field for custom data.
+                        </p>
+                        <span class="badge badge-success">Extension Layer</span>
+                    </div>
+                </div>
+                
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">Type Inference Example</span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-comment">// Drizzle infers types from schema definitions</span>
+<span class="token-keyword">export type</span> <span class="token-type">Stage</span> = <span class="token-keyword">typeof</span> stage.<span class="token-property">$inferSelect</span>;
+<span class="token-keyword">export type</span> <span class="token-type">NewStage</span> = <span class="token-keyword">typeof</span> stage.<span class="token-property">$inferInsert</span>;
+
+<span class="token-comment">// Extended type for JSON extras</span>
+<span class="token-keyword">export type</span> <span class="token-type">MatchWithExtra</span> = DataTypes[<span class="token-string">'match'</span>] & { 
+    extra?: <span class="token-type">JsonValue</span> | <span class="token-keyword">null</span> 
+};
+
+<span class="token-comment">// Enum types from Drizzle</span>
+<span class="token-keyword">export type</span> <span class="token-type">StageType</span> = (<span class="token-keyword">typeof</span> stageTypeEnum.enumValues)[<span class="token-type">number</span>];
+<span class="token-comment">// Results in: 'ROUND_ROBIN' | 'SINGLE_ELIMINATION' | 'DOUBLE_ELIMINATION'</span></code></pre>
+                </div>
+            </section>
+            
+            <!-- Error Handling -->
+            <section>
+                <h2 id="error-handling">Error Handling</h2>
+                <p>
+                    The codebase uses a consistent error handling strategy that 
+                    gracefully handles failures without throwing exceptions to the caller.
+                </p>
+                
+                <h3>Error Handling Pattern</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">Error Handling Pattern</span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">export async function</span> <span class="token-function">handleMatchInsert</span>(
+    db: <span class="token-type">DrizzleDatabase</span>,
+    values: <span class="token-type">OmitId</span>&lt;<span class="token-type">MatchWithExtra</span>&gt; | <span class="token-type">OmitId</span>&lt;<span class="token-type">MatchWithExtra</span>&gt;[],
+): <span class="token-type">Promise</span>&lt;<span class="token-type">number</span> | <span class="token-type">boolean</span>&gt; {
+    <span class="token-keyword">try</span> {
+        <span class="token-keyword">if</span> (Array.<span class="token-function">isArray</span>(values)) {
+            <span class="token-comment">// Batch insert - return boolean</span>
+            <span class="token-keyword">for</span> (<span class="token-keyword">const</span> value <span class="token-keyword">of</span> values) {
+                <span class="token-keyword">await</span> <span class="token-function">insertSingleMatch</span>(db, value);
+            }
+            <span class="token-keyword">return</span> <span class="token-keyword">true</span>;
+        }
+        
+        <span class="token-comment">// Single insert - return ID</span>
+        <span class="token-keyword">const</span> result = <span class="token-keyword">await</span> <span class="token-function">insertSingleMatch</span>(db, values);
+        <span class="token-keyword">return</span> result ?? -<span class="token-number">1</span>;
+    } <span class="token-keyword">catch</span> {
+        <span class="token-comment">// Return failure indicator based on input type</span>
+        <span class="token-keyword">return</span> Array.<span class="token-function">isArray</span>(values) ? <span class="token-keyword">false</span> : -<span class="token-number">1</span>;
+    }
+}</code></pre>
+                </div>
+                
+                <div class="alert alert-warning">
+                    <div class="alert-title">⚠️ Error Return Values</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Operation</th>
+                                <th>Success</th>
+                                <th>Failure</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Single Insert</td>
+                                <td>Record ID (number)</td>
+                                <td><code>-1</code></td>
+                            </tr>
+                            <tr>
+                                <td>Batch Insert</td>
+                                <td><code>true</code></td>
+                                <td><code>false</code></td>
+                            </tr>
+                            <tr>
+                                <td>Select (all/filter)</td>
+                                <td>Array of records</td>
+                                <td><code>[]</code> or <code>null</code></td>
+                            </tr>
+                            <tr>
+                                <td>Select (by ID)</td>
+                                <td>Single record</td>
+                                <td><code>null</code></td>
+                            </tr>
+                            <tr>
+                                <td>Update</td>
+                                <td><code>true</code></td>
+                                <td><code>false</code></td>
+                            </tr>
+                            <tr>
+                                <td>Delete</td>
+                                <td><code>true</code></td>
+                                <td><code>false</code></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+            
+            <!-- Navigation Footer -->
+            <footer class="doc-footer">
+                <div class="footer-nav">
+                    <span class="footer-nav-label">Previous</span>
+                    <a href="index.html" class="footer-nav-link">← Overview</a>
+                </div>
+                <div class="footer-nav">
+                    <span class="footer-nav-label">Next</span>
+                    <a href="database-schema.html" class="footer-nav-link">Database Schema →</a>
+                </div>
+            </footer>
+        </main>
+    </div>
+    
+    <script>
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+    </script>
+</body>
+</html>
+

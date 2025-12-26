@@ -1,0 +1,381 @@
+/* ========================================
+   Code Examples & Syntax Highlighting
+   ======================================== */
+
+/* Code block container */
+.code-block {
+  position: relative;
+  margin: var(--space-lg) 0;
+}
+
+.code-block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-bottom: none;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  padding: var(--space-sm) var(--space-md);
+}
+
+.code-block-filename {
+  font-family: var(--font-primary);
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.code-block-filename-icon {
+  color: var(--color-accent-primary);
+}
+
+.code-block-language {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  background: var(--color-bg-code);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  color: var(--color-accent-tertiary);
+}
+
+.code-block-copy {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: all var(--transition-fast);
+}
+
+.code-block-copy:hover {
+  background: var(--color-accent-primary);
+  color: var(--color-bg-primary);
+  border-color: var(--color-accent-primary);
+}
+
+.code-block pre {
+  margin: 0;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  border-top: none;
+}
+
+/* Line numbers */
+.code-with-lines {
+  display: grid;
+  grid-template-columns: auto 1fr;
+}
+
+.code-line-numbers {
+  padding: var(--space-lg);
+  padding-right: 0;
+  text-align: right;
+  user-select: none;
+  color: var(--color-text-muted);
+  font-family: var(--font-primary);
+  font-size: 0.75rem;
+  line-height: 1.7;
+  border-right: 1px solid var(--color-border);
+  margin-right: var(--space-md);
+}
+
+.code-content {
+  padding: var(--space-lg);
+  padding-left: var(--space-md);
+  overflow-x: auto;
+}
+
+/* Highlighted lines */
+.highlight-line {
+  background: rgba(34, 211, 238, 0.1);
+  margin: 0 calc(-1 * var(--space-lg));
+  padding: 0 var(--space-lg);
+  border-left: 3px solid var(--color-accent-primary);
+}
+
+/* Diff styling */
+.diff-add {
+  background: rgba(52, 211, 153, 0.15);
+  border-left: 3px solid var(--color-accent-tertiary);
+}
+
+.diff-remove {
+  background: rgba(248, 113, 113, 0.15);
+  border-left: 3px solid var(--color-accent-danger);
+}
+
+.diff-add::before {
+  content: "+ ";
+  color: var(--color-accent-tertiary);
+}
+
+.diff-remove::before {
+  content: "- ";
+  color: var(--color-accent-danger);
+}
+
+/* Inline code styling */
+.code-inline {
+  font-family: var(--font-primary);
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85em;
+  color: var(--color-accent-primary);
+  white-space: nowrap;
+}
+
+/* Token colors - Enhanced syntax highlighting */
+.token { color: var(--color-text-primary); }
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata { 
+  color: #637777; 
+  font-style: italic; 
+}
+
+.token.punctuation { color: #89ddff; }
+.token.namespace { opacity: 0.7; }
+
+.token.property,
+.token.tag,
+.token.boolean,
+.token.number,
+.token.constant,
+.token.symbol,
+.token.deleted { color: #f78c6c; }
+
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.builtin,
+.token.inserted { color: #c3e88d; }
+
+.token.operator,
+.token.entity,
+.token.url,
+.token.variable { color: #89ddff; }
+
+.token.atrule,
+.token.attr-value,
+.token.function,
+.token.class-name { color: #82aaff; }
+
+.token.keyword { color: #c792ea; }
+
+.token.regex,
+.token.important { color: #f78c6c; }
+
+.token.important,
+.token.bold { font-weight: bold; }
+.token.italic { font-style: italic; }
+
+.token.entity { cursor: help; }
+
+/* TypeScript specific */
+.token.type,
+.token.interface { color: #ffcb6b; }
+.token.generic { color: #89ddff; }
+.token.decorator { color: #c792ea; }
+
+/* Method chaining visualization */
+.method-chain {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  align-items: center;
+  margin: var(--space-lg) 0;
+}
+
+.method-item {
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-sm) var(--space-md);
+  font-family: var(--font-primary);
+  font-size: 0.85rem;
+}
+
+.method-item-object {
+  color: var(--color-accent-secondary);
+  border-color: var(--color-accent-secondary);
+}
+
+.method-item-method {
+  color: var(--color-accent-primary);
+  border-color: var(--color-accent-primary);
+}
+
+.method-item-result {
+  color: var(--color-accent-tertiary);
+  border-color: var(--color-accent-tertiary);
+  background: rgba(52, 211, 153, 0.1);
+}
+
+.method-chain-arrow {
+  color: var(--color-text-muted);
+  font-size: 1.2rem;
+}
+
+/* Code comparison side-by-side */
+.code-comparison {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-lg);
+  margin: var(--space-xl) 0;
+}
+
+.code-comparison-panel {
+  overflow: hidden;
+}
+
+.code-comparison-header {
+  background: var(--color-bg-tertiary);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  border: 1px solid var(--color-border);
+  border-bottom: none;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.code-comparison-before .code-comparison-header {
+  color: var(--color-accent-danger);
+}
+
+.code-comparison-after .code-comparison-header {
+  color: var(--color-accent-tertiary);
+}
+
+.code-comparison pre {
+  margin: 0;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+/* Interactive code tabs */
+.code-tabs {
+  margin: var(--space-lg) 0;
+}
+
+.code-tabs-nav {
+  display: flex;
+  gap: var(--space-xs);
+  border-bottom: 1px solid var(--color-border);
+  margin-bottom: -1px;
+}
+
+.code-tab-button {
+  padding: var(--space-sm) var(--space-lg);
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-family: var(--font-primary);
+  font-size: 0.85rem;
+  transition: all var(--transition-fast);
+}
+
+.code-tab-button:hover {
+  color: var(--color-text-primary);
+  background: var(--color-bg-tertiary);
+}
+
+.code-tab-button.active {
+  background: var(--color-bg-code);
+  border-color: var(--color-border);
+  color: var(--color-accent-primary);
+}
+
+.code-tab-content {
+  display: none;
+}
+
+.code-tab-content.active {
+  display: block;
+}
+
+/* API signature styling */
+.api-signature {
+  background: var(--color-bg-code);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-lg);
+  margin: var(--space-lg) 0;
+  font-family: var(--font-primary);
+  overflow-x: auto;
+}
+
+.api-signature-method {
+  color: var(--color-accent-primary);
+  font-weight: 600;
+}
+
+.api-signature-params {
+  color: var(--color-text-secondary);
+}
+
+.api-signature-type {
+  color: var(--color-accent-secondary);
+}
+
+.api-signature-return {
+  color: var(--color-accent-tertiary);
+}
+
+/* Parameter table */
+.param-table {
+  width: 100%;
+  margin: var(--space-lg) 0;
+}
+
+.param-table th,
+.param-table td {
+  padding: var(--space-md);
+  vertical-align: top;
+}
+
+.param-name {
+  font-family: var(--font-primary);
+  color: var(--color-accent-primary);
+  font-size: 0.9rem;
+}
+
+.param-type {
+  font-family: var(--font-primary);
+  color: var(--color-accent-secondary);
+  font-size: 0.85rem;
+}
+
+.param-required {
+  color: var(--color-accent-danger);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.param-optional {
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+}
+
+.param-default {
+  font-family: var(--font-primary);
+  font-size: 0.8rem;
+  color: var(--color-accent-tertiary);
+}
+
+@media (max-width: 768px) {
+  .code-comparison {
+    grid-template-columns: 1fr;
+  }
+}
+

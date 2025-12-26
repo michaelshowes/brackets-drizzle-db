@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scaling Guide - Brackets Drizzle DB</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/schema-diagrams.css">
+    <link rel="stylesheet" href="css/code-examples.css">
+</head>
+<body>
+    <button class="mobile-menu-toggle" onclick="toggleSidebar()">☰ Menu</button>
+    
+    <div class="page-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">Brackets Drizzle DB</div>
+                <div class="sidebar-version">v2.1.0</div>
+            </div>
+            
+            <nav>
+                <div class="nav-section">
+                    <div class="nav-section-title">Getting Started</div>
+                    <ul class="nav-list">
+                        <li class="nav-item"><a href="index.html" class="nav-link">Overview</a></li>
+                        <li class="nav-item"><a href="architecture.html" class="nav-link">Architecture</a></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Core Concepts</div>
+                    <ul class="nav-list">
+                        <li class="nav-item"><a href="database-schema.html" class="nav-link">Database Schema</a></li>
+                        <li class="nav-item"><a href="storage-handlers.html" class="nav-link">Storage Handlers</a></li>
+                        <li class="nav-item"><a href="transformers.html" class="nav-link">Transformers</a></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Reference</div>
+                    <ul class="nav-list">
+                        <li class="nav-item"><a href="api-reference.html" class="nav-link">API Reference</a></li>
+                        <li class="nav-item"><a href="scaling-guide.html" class="nav-link active">Scaling Guide</a></li>
+                    </ul>
+                </div>
+            </nav>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <nav class="breadcrumbs">
+                <a href="index.html">Home</a>
+                <span class="breadcrumb-separator">›</span>
+                <span>Scaling Guide</span>
+            </nav>
+            
+            <div class="page-header">
+                <h1>Scaling Guide</h1>
+                <p class="page-subtitle">
+                    Strategies for extending, optimizing, and scaling the brackets-drizzle-db codebase
+                </p>
+            </div>
+            
+            <div class="toc">
+                <div class="toc-title">On This Page</div>
+                <ul class="toc-list">
+                    <li><a href="#database-optimization">Database Optimization</a></li>
+                    <li><a href="#adding-indexes">Adding Indexes</a></li>
+                    <li><a href="#query-optimization">Query Optimization</a></li>
+                    <li><a href="#extending-schema">Extending the Schema</a></li>
+                    <li><a href="#new-entities">Adding New Entity Types</a></li>
+                    <li><a href="#performance-patterns">Performance Patterns</a></li>
+                    <li><a href="#multi-tenant">Multi-Tenant Considerations</a></li>
+                    <li><a href="#migration-strategy">Migration Strategy</a></li>
+                </ul>
+            </div>
+            
+            <!-- Database Optimization -->
+            <section>
+                <h2 id="database-optimization">Database Optimization</h2>
+                <p>
+                    As your tournament platform grows, database performance becomes critical. 
+                    Here are key areas to focus on.
+                </p>
+                
+                <h3>Current Schema Analysis</h3>
+                <div class="card-grid">
+                    <div class="card">
+                        <h4>✅ Strengths</h4>
+                        <ul>
+                            <li>Proper foreign key relationships</li>
+                            <li>Normalized schema (no data duplication)</li>
+                            <li>Serial primary keys for fast inserts</li>
+                            <li>JSONB for flexible extra data</li>
+                            <li>Native PostgreSQL enums for type safety</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="card">
+                        <h4>⚠️ Potential Bottlenecks</h4>
+                        <ul>
+                            <li>No indexes beyond primary keys</li>
+                            <li>N+1 queries for opponent results</li>
+                            <li>Full table scans on filter queries</li>
+                            <li>No connection pooling built-in</li>
+                            <li>Sequential batch inserts</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Adding Indexes -->
+            <section>
+                <h2 id="adding-indexes">Adding Indexes</h2>
+                <p>
+                    The current schema has no indexes beyond primary keys. For production use 
+                    with larger datasets, add these recommended indexes:
+                </p>
+                
+                <h3>Recommended Indexes</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">Recommended Index Additions</span>
+                        <span class="code-block-language">sql</span>
+                    </div>
+                    <pre><code><span class="token-comment">-- Most frequently filtered columns</span>
+
+<span class="token-comment">-- Stage lookups by tournament</span>
+<span class="token-keyword">CREATE INDEX</span> idx_stage_tournament_id 
+<span class="token-keyword">ON</span> <span class="token-string">"Stage"</span>(tournament_id);
+
+<span class="token-comment">-- Group lookups by stage</span>
+<span class="token-keyword">CREATE INDEX</span> idx_group_stage_id 
+<span class="token-keyword">ON</span> <span class="token-string">"Group"</span>(stage_id);
+
+<span class="token-comment">-- Round lookups by group and stage</span>
+<span class="token-keyword">CREATE INDEX</span> idx_round_group_id 
+<span class="token-keyword">ON</span> <span class="token-string">"Round"</span>(group_id);
+<span class="token-keyword">CREATE INDEX</span> idx_round_stage_id 
+<span class="token-keyword">ON</span> <span class="token-string">"Round"</span>(stage_id);
+
+<span class="token-comment">-- Match lookups (most critical for performance)</span>
+<span class="token-keyword">CREATE INDEX</span> idx_match_stage_id 
+<span class="token-keyword">ON</span> <span class="token-string">"Match"</span>(stage_id);
+<span class="token-keyword">CREATE INDEX</span> idx_match_group_id 
+<span class="token-keyword">ON</span> <span class="token-string">"Match"</span>(group_id);
+<span class="token-keyword">CREATE INDEX</span> idx_match_round_id 
+<span class="token-keyword">ON</span> <span class="token-string">"Match"</span>(round_id);
+<span class="token-keyword">CREATE INDEX</span> idx_match_status 
+<span class="token-keyword">ON</span> <span class="token-string">"Match"</span>(status);
+
+<span class="token-comment">-- Composite index for common query pattern</span>
+<span class="token-keyword">CREATE INDEX</span> idx_match_stage_status 
+<span class="token-keyword">ON</span> <span class="token-string">"Match"</span>(stage_id, status);
+
+<span class="token-comment">-- Match Game lookups</span>
+<span class="token-keyword">CREATE INDEX</span> idx_match_game_match_id 
+<span class="token-keyword">ON</span> <span class="token-string">"MatchGame"</span>(match_id);
+<span class="token-keyword">CREATE INDEX</span> idx_match_game_stage_id 
+<span class="token-keyword">ON</span> <span class="token-string">"MatchGame"</span>(stage_id);
+
+<span class="token-comment">-- Participant result lookups</span>
+<span class="token-keyword">CREATE INDEX</span> idx_participant_result_participant_id 
+<span class="token-keyword">ON</span> <span class="token-string">"ParticipantMatchResult"</span>(participant_id);
+<span class="token-keyword">CREATE INDEX</span> idx_participant_result_opponent1_match 
+<span class="token-keyword">ON</span> <span class="token-string">"ParticipantMatchResult"</span>(opponent1_match_id);
+<span class="token-keyword">CREATE INDEX</span> idx_participant_result_opponent2_match 
+<span class="token-keyword">ON</span> <span class="token-string">"ParticipantMatchResult"</span>(opponent2_match_id);
+
+<span class="token-comment">-- Participant lookups by tournament</span>
+<span class="token-keyword">CREATE INDEX</span> idx_participant_tournament_id 
+<span class="token-keyword">ON</span> <span class="token-string">"Participant"</span>(tournament_id);</code></pre>
+                </div>
+                
+                <h3>Adding Indexes with Drizzle</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">Drizzle Schema with Indexes</span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">import</span> { pgTable, serial, integer, index } <span class="token-keyword">from</span> <span class="token-string">'drizzle-orm/pg-core'</span>;
+
+<span class="token-keyword">export const</span> match = <span class="token-function">pgTable</span>(
+    <span class="token-string">'Match'</span>,
+    {
+        id: <span class="token-function">serial</span>(<span class="token-string">'id'</span>).<span class="token-function">primaryKey</span>(),
+        stageId: <span class="token-function">integer</span>(<span class="token-string">'stageId'</span>).<span class="token-function">notNull</span>(),
+        groupId: <span class="token-function">integer</span>(<span class="token-string">'groupId'</span>).<span class="token-function">notNull</span>(),
+        roundId: <span class="token-function">integer</span>(<span class="token-string">'roundId'</span>).<span class="token-function">notNull</span>(),
+        <span class="token-comment">// ... other columns</span>
+    },
+    (table) => ({
+        <span class="token-comment">// Add indexes</span>
+        stageIdIdx: <span class="token-function">index</span>(<span class="token-string">'idx_match_stage_id'</span>).<span class="token-function">on</span>(table.stageId),
+        groupIdIdx: <span class="token-function">index</span>(<span class="token-string">'idx_match_group_id'</span>).<span class="token-function">on</span>(table.groupId),
+        roundIdIdx: <span class="token-function">index</span>(<span class="token-string">'idx_match_round_id'</span>).<span class="token-function">on</span>(table.roundId),
+        statusIdx: <span class="token-function">index</span>(<span class="token-string">'idx_match_status'</span>).<span class="token-function">on</span>(table.status),
+        stageStatusIdx: <span class="token-function">index</span>(<span class="token-string">'idx_match_stage_status'</span>)
+            .<span class="token-function">on</span>(table.stageId, table.status),
+    })
+);</code></pre>
+                </div>
+            </section>
+            
+            <!-- Query Optimization -->
+            <section>
+                <h2 id="query-optimization">Query Optimization</h2>
+                
+                <h3>N+1 Query Problem</h3>
+                <p>
+                    The current implementation fetches opponent results separately for each match. 
+                    For large result sets, this causes N+1 queries.
+                </p>
+                
+                <div class="alert alert-warning">
+                    <div class="alert-title">⚠️ Current Pattern (N+1 Queries)</div>
+                    <div class="code-block" style="margin: var(--space-md) 0 0 0;">
+                        <pre><code><span class="token-comment">// 1 query for matches</span>
+<span class="token-keyword">const</span> matches = <span class="token-keyword">await</span> db.<span class="token-function">select</span>().<span class="token-function">from</span>(match);
+
+<span class="token-comment">// N queries for opponents (one per match)</span>
+<span class="token-keyword">for</span> (<span class="token-keyword">const</span> m <span class="token-keyword">of</span> matches) {
+    <span class="token-keyword">await</span> <span class="token-function">getOpponents</span>(db, m.id);  <span class="token-comment">// 2 queries each!</span>
+}</code></pre>
+                    </div>
+                </div>
+                
+                <h3>Optimized Approach: Batch Loading</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">Optimized Opponent Loading</span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">async function</span> <span class="token-function">getMatchesWithOpponents</span>(
+    db: DrizzleDatabase,
+    stageId: <span class="token-type">number</span>
+) {
+    <span class="token-comment">// 1. Fetch all matches in one query</span>
+    <span class="token-keyword">const</span> matches = <span class="token-keyword">await</span> db
+        .<span class="token-function">select</span>()
+        .<span class="token-function">from</span>(match)
+        .<span class="token-function">where</span>(<span class="token-function">eq</span>(match.stageId, stageId));
+
+    <span class="token-keyword">const</span> matchIds = matches.<span class="token-function">map</span>(m => m.id);
+
+    <span class="token-comment">// 2. Batch fetch ALL opponent results in 2 queries</span>
+    <span class="token-keyword">const</span> opponent1Results = <span class="token-keyword">await</span> db
+        .<span class="token-function">select</span>()
+        .<span class="token-function">from</span>(participantMatchResult)
+        .<span class="token-function">where</span>(<span class="token-function">inArray</span>(participantMatchResult.opponent1MatchId, matchIds));
+
+    <span class="token-keyword">const</span> opponent2Results = <span class="token-keyword">await</span> db
+        .<span class="token-function">select</span>()
+        .<span class="token-function">from</span>(participantMatchResult)
+        .<span class="token-function">where</span>(<span class="token-function">inArray</span>(participantMatchResult.opponent2MatchId, matchIds));
+
+    <span class="token-comment">// 3. Build lookup maps</span>
+    <span class="token-keyword">const</span> opp1Map = <span class="token-keyword">new</span> Map(
+        opponent1Results.<span class="token-function">map</span>(r => [r.opponent1MatchId, r])
+    );
+    <span class="token-keyword">const</span> opp2Map = <span class="token-keyword">new</span> Map(
+        opponent2Results.<span class="token-function">map</span>(r => [r.opponent2MatchId, r])
+    );
+
+    <span class="token-comment">// 4. Combine results</span>
+    <span class="token-keyword">return</span> matches.<span class="token-function">map</span>(m => ({
+        ...m,
+        opponent1Result: opp1Map.<span class="token-function">get</span>(m.id) ?? <span class="token-keyword">null</span>,
+        opponent2Result: opp2Map.<span class="token-function">get</span>(m.id) ?? <span class="token-keyword">null</span>,
+    }));
+}</code></pre>
+                </div>
+                
+                <h3>Using Drizzle Relations</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">Relational Query API</span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-comment">// Drizzle's relational query API handles joins automatically</span>
+<span class="token-keyword">const</span> matchesWithRelations = <span class="token-keyword">await</span> db.query.match.<span class="token-function">findMany</span>({
+    where: <span class="token-function">eq</span>(match.stageId, stageId),
+    with: {
+        opponent1Result: <span class="token-keyword">true</span>,
+        opponent2Result: <span class="token-keyword">true</span>,
+        round: <span class="token-keyword">true</span>,
+        group: <span class="token-keyword">true</span>,
+    },
+    orderBy: [<span class="token-function">asc</span>(match.number)],
+});</code></pre>
+                </div>
+            </section>
+            
+            <!-- Extending Schema -->
+            <section>
+                <h2 id="extending-schema">Extending the Schema</h2>
+                <p>Common schema extensions for tournament platforms:</p>
+                
+                <h3>Adding a Tournament Table</h3>
+                <p>
+                    The current schema references <code>tournamentId</code> but doesn't define 
+                    a Tournament table. You can add one:
+                </p>
+                
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">Tournament Table Extension</span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-comment">// In your own schema file</span>
+<span class="token-keyword">import</span> { pgTable, serial, text, timestamp, integer } <span class="token-keyword">from</span> <span class="token-string">'drizzle-orm/pg-core'</span>;
+<span class="token-keyword">import</span> { relations } <span class="token-keyword">from</span> <span class="token-string">'drizzle-orm'</span>;
+<span class="token-keyword">import</span> { stage, participant } <span class="token-keyword">from</span> <span class="token-string">'brackets-drizzle-db'</span>;
+
+<span class="token-keyword">export const</span> tournament = <span class="token-function">pgTable</span>(<span class="token-string">'Tournament'</span>, {
+    id: <span class="token-function">serial</span>(<span class="token-string">'id'</span>).<span class="token-function">primaryKey</span>(),
+    name: <span class="token-function">text</span>(<span class="token-string">'name'</span>).<span class="token-function">notNull</span>(),
+    description: <span class="token-function">text</span>(<span class="token-string">'description'</span>),
+    startDate: <span class="token-function">timestamp</span>(<span class="token-string">'startDate'</span>),
+    endDate: <span class="token-function">timestamp</span>(<span class="token-string">'endDate'</span>),
+    organizerId: <span class="token-function">integer</span>(<span class="token-string">'organizerId'</span>),
+    status: <span class="token-function">text</span>(<span class="token-string">'status'</span>).<span class="token-function">default</span>(<span class="token-string">'draft'</span>),
+    createdAt: <span class="token-function">timestamp</span>(<span class="token-string">'createdAt'</span>).<span class="token-function">defaultNow</span>(),
+    updatedAt: <span class="token-function">timestamp</span>(<span class="token-string">'updatedAt'</span>).<span class="token-function">defaultNow</span>(),
+});
+
+<span class="token-keyword">export const</span> tournamentRelations = <span class="token-function">relations</span>(tournament, ({ many }) => ({
+    stages: <span class="token-function">many</span>(stage),
+    participants: <span class="token-function">many</span>(participant),
+}));</code></pre>
+                </div>
+                
+                <h3>Adding Match Scheduling</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">Match Schedule Extension</span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">export const</span> matchSchedule = <span class="token-function">pgTable</span>(<span class="token-string">'MatchSchedule'</span>, {
+    id: <span class="token-function">serial</span>(<span class="token-string">'id'</span>).<span class="token-function">primaryKey</span>(),
+    matchId: <span class="token-function">integer</span>(<span class="token-string">'matchId'</span>)
+        .<span class="token-function">notNull</span>()
+        .<span class="token-function">unique</span>()
+        .<span class="token-function">references</span>(() => match.id),
+    scheduledStart: <span class="token-function">timestamp</span>(<span class="token-string">'scheduledStart'</span>).<span class="token-function">notNull</span>(),
+    scheduledEnd: <span class="token-function">timestamp</span>(<span class="token-string">'scheduledEnd'</span>),
+    actualStart: <span class="token-function">timestamp</span>(<span class="token-string">'actualStart'</span>),
+    actualEnd: <span class="token-function">timestamp</span>(<span class="token-string">'actualEnd'</span>),
+    venue: <span class="token-function">text</span>(<span class="token-string">'venue'</span>),
+    streamUrl: <span class="token-function">text</span>(<span class="token-string">'streamUrl'</span>),
+    vodUrl: <span class="token-function">text</span>(<span class="token-string">'vodUrl'</span>),
+});</code></pre>
+                </div>
+                
+                <div class="alert alert-info">
+                    <div class="alert-title">💡 Alternative: Use the extra Column</div>
+                    <p>
+                        For simpler use cases, you can store scheduling data in the match's 
+                        <code>extra</code> JSONB column instead of creating a new table. This avoids 
+                        schema changes but sacrifices query performance and type safety.
+                    </p>
+                </div>
+            </section>
+            
+            <!-- New Entities -->
+            <section>
+                <h2 id="new-entities">Adding New Entity Types</h2>
+                <p>To add a completely new entity type to the brackets-manager integration:</p>
+                
+                <h3>Step-by-Step Checklist</h3>
+                <ol>
+                    <li>
+                        <strong>Add to DataTypes</strong> (brackets-manager side)
+                        <p>If this is a new entity that brackets-manager needs to know about, 
+                        you'll need to extend the DataTypes interface.</p>
+                    </li>
+                    <li>
+                        <strong>Create Schema Definition</strong>
+                        <div class="code-block">
+                            <pre><code><span class="token-comment">// src/db/schema/my-entity.ts</span>
+<span class="token-keyword">export const</span> myEntity = <span class="token-function">pgTable</span>(<span class="token-string">'MyEntity'</span>, { ... });
+<span class="token-keyword">export const</span> myEntityRelations = <span class="token-function">relations</span>(myEntity, ...);
+<span class="token-keyword">export type</span> <span class="token-type">MyEntity</span> = <span class="token-keyword">typeof</span> myEntity.<span class="token-property">$inferSelect</span>;</code></pre>
+                        </div>
+                    </li>
+                    <li>
+                        <strong>Create Transformers</strong>
+                        <div class="code-block">
+                            <pre><code><span class="token-comment">// src/transformers/model/my-entity.ts</span>
+<span class="token-keyword">export const</span> MyEntityTransformer = {
+    <span class="token-function">to</span>(input) { ... },
+    <span class="token-function">from</span>(output) { ... },
+};</code></pre>
+                        </div>
+                    </li>
+                    <li>
+                        <strong>Create CRUD Handlers</strong>
+                        <div class="code-block">
+                            <pre><code><span class="token-comment">// src/storage-handlers/insert-handlers/my-entity.ts</span>
+<span class="token-keyword">export async function</span> <span class="token-function">handleMyEntityInsert</span>(db, values) { ... }
+
+<span class="token-comment">// Repeat for select, update, delete</span></code></pre>
+                        </div>
+                    </li>
+                    <li>
+                        <strong>Add Dispatch Cases</strong>
+                        <div class="code-block">
+                            <pre><code><span class="token-comment">// In each of insert.ts, select.ts, update.ts, delete.ts</span>
+<span class="token-keyword">case</span> <span class="token-string">'my_entity'</span>:
+    <span class="token-keyword">return</span> <span class="token-function">handleMyEntityInsert</span>(db, values);</code></pre>
+                        </div>
+                    </li>
+                    <li>
+                        <strong>Export from Index Files</strong>
+                    </li>
+                </ol>
+            </section>
+            
+            <!-- Performance Patterns -->
+            <section>
+                <h2 id="performance-patterns">Performance Patterns</h2>
+                
+                <h3>Connection Pooling</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">Connection Pool Configuration</span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">import</span> postgres <span class="token-keyword">from</span> <span class="token-string">'postgres'</span>;
+<span class="token-keyword">import</span> { drizzle } <span class="token-keyword">from</span> <span class="token-string">'drizzle-orm/postgres-js'</span>;
+
+<span class="token-comment">// Configure connection pool</span>
+<span class="token-keyword">const</span> client = <span class="token-function">postgres</span>(process.env.DATABASE_URL!, {
+    max: <span class="token-number">20</span>,               <span class="token-comment">// Maximum pool size</span>
+    idle_timeout: <span class="token-number">30</span>,      <span class="token-comment">// Close idle connections after 30s</span>
+    connect_timeout: <span class="token-number">10</span>,   <span class="token-comment">// Connection timeout</span>
+});
+
+<span class="token-keyword">const</span> db = <span class="token-function">drizzle</span>(client, { schema });</code></pre>
+                </div>
+                
+                <h3>Batch Operations</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">Optimized Batch Insert</span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-comment">// Instead of inserting one by one in a loop...</span>
+<span class="token-keyword">for</span> (<span class="token-keyword">const</span> value <span class="token-keyword">of</span> values) {
+    <span class="token-keyword">await</span> db.<span class="token-function">insert</span>(table).<span class="token-function">values</span>(value); <span class="token-comment">// ❌ N queries</span>
+}
+
+<span class="token-comment">// Use batch insert</span>
+<span class="token-keyword">await</span> db.<span class="token-function">insert</span>(table).<span class="token-function">values</span>(values); <span class="token-comment">// ✅ 1 query</span></code></pre>
+                </div>
+                
+                <h3>Transaction Usage</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">Atomic Operations with Transactions</span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-comment">// Wrap related operations in a transaction</span>
+<span class="token-keyword">await</span> db.<span class="token-function">transaction</span>(<span class="token-keyword">async</span> (tx) => {
+    <span class="token-comment">// Insert match</span>
+    <span class="token-keyword">const</span> [matchResult] = <span class="token-keyword">await</span> tx
+        .<span class="token-function">insert</span>(match)
+        .<span class="token-function">values</span>(matchData)
+        .<span class="token-function">returning</span>();
+
+    <span class="token-comment">// Insert opponent results</span>
+    <span class="token-keyword">await</span> tx.<span class="token-function">insert</span>(participantMatchResult).<span class="token-function">values</span>([
+        { ...opponent1Data, opponent1MatchId: matchResult.id },
+        { ...opponent2Data, opponent2MatchId: matchResult.id },
+    ]);
+
+    <span class="token-comment">// If anything fails, everything rolls back</span>
+});</code></pre>
+                </div>
+                
+                <h3>Caching Strategy</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">Read-Through Cache Pattern</span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">import</span> { Redis } <span class="token-keyword">from</span> <span class="token-string">'ioredis'</span>;
+
+<span class="token-keyword">const</span> redis = <span class="token-keyword">new</span> <span class="token-function">Redis</span>();
+<span class="token-keyword">const</span> CACHE_TTL = <span class="token-number">60</span>; <span class="token-comment">// seconds</span>
+
+<span class="token-keyword">async function</span> <span class="token-function">getCachedMatch</span>(matchId: <span class="token-type">number</span>) {
+    <span class="token-keyword">const</span> cacheKey = <span class="token-string">`match:</span>${matchId}<span class="token-string">`</span>;
+    
+    <span class="token-comment">// Try cache first</span>
+    <span class="token-keyword">const</span> cached = <span class="token-keyword">await</span> redis.<span class="token-function">get</span>(cacheKey);
+    <span class="token-keyword">if</span> (cached) {
+        <span class="token-keyword">return</span> JSON.<span class="token-function">parse</span>(cached);
+    }
+    
+    <span class="token-comment">// Fetch from database</span>
+    <span class="token-keyword">const</span> match = <span class="token-keyword">await</span> storage.<span class="token-function">select</span>(<span class="token-string">'match'</span>, matchId);
+    
+    <span class="token-comment">// Cache the result</span>
+    <span class="token-keyword">if</span> (match) {
+        <span class="token-keyword">await</span> redis.<span class="token-function">setex</span>(cacheKey, CACHE_TTL, JSON.<span class="token-function">stringify</span>(match));
+    }
+    
+    <span class="token-keyword">return</span> match;
+}
+
+<span class="token-comment">// Invalidate on update</span>
+<span class="token-keyword">async function</span> <span class="token-function">invalidateMatchCache</span>(matchId: <span class="token-type">number</span>) {
+    <span class="token-keyword">await</span> redis.<span class="token-function">del</span>(<span class="token-string">`match:</span>${matchId}<span class="token-string">`</span>);
+}</code></pre>
+                </div>
+            </section>
+            
+            <!-- Multi-Tenant -->
+            <section>
+                <h2 id="multi-tenant">Multi-Tenant Considerations</h2>
+                <p>For platforms hosting tournaments for multiple organizers:</p>
+                
+                <h3>Row-Level Security Approach</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">PostgreSQL RLS for Multi-Tenancy</span>
+                        <span class="code-block-language">sql</span>
+                    </div>
+                    <pre><code><span class="token-comment">-- Add organization_id to tables</span>
+<span class="token-keyword">ALTER TABLE</span> <span class="token-string">"Stage"</span> 
+<span class="token-keyword">ADD COLUMN</span> organization_id <span class="token-type">INTEGER</span> <span class="token-keyword">REFERENCES</span> organization(id);
+
+<span class="token-comment">-- Enable RLS</span>
+<span class="token-keyword">ALTER TABLE</span> <span class="token-string">"Stage"</span> <span class="token-keyword">ENABLE ROW LEVEL SECURITY</span>;
+
+<span class="token-comment">-- Create policy</span>
+<span class="token-keyword">CREATE POLICY</span> stage_org_isolation <span class="token-keyword">ON</span> <span class="token-string">"Stage"</span>
+    <span class="token-keyword">USING</span> (organization_id = <span class="token-function">current_setting</span>(<span class="token-string">'app.current_org_id'</span>)::<span class="token-type">INTEGER</span>);
+
+<span class="token-comment">-- Set context before queries</span>
+<span class="token-keyword">SET</span> app.current_org_id = <span class="token-string">'123'</span>;</code></pre>
+                </div>
+                
+                <h3>Schema-Per-Tenant</h3>
+                <p>For complete isolation, use separate PostgreSQL schemas per tenant:</p>
+                
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">Schema-Per-Tenant Pattern</span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">function</span> <span class="token-function">createTenantDatabase</span>(tenantId: <span class="token-type">string</span>) {
+    <span class="token-keyword">const</span> client = <span class="token-function">postgres</span>(process.env.DATABASE_URL!, {
+        <span class="token-comment">// Set search_path to tenant schema</span>
+        transform: {
+            <span class="token-function">undefined</span>: <span class="token-keyword">null</span>,
+        },
+    });
+    
+    <span class="token-comment">// Execute before each query</span>
+    client.<span class="token-function">unsafe</span>(<span class="token-string">`SET search_path TO tenant_</span>${tenantId}<span class="token-string">`</span>);
+    
+    <span class="token-keyword">return</span> <span class="token-function">drizzle</span>(client, { schema });
+}</code></pre>
+                </div>
+            </section>
+            
+            <!-- Migration Strategy -->
+            <section>
+                <h2 id="migration-strategy">Migration Strategy</h2>
+                <p>
+                    Using Drizzle Kit for database migrations ensures schema changes are 
+                    tracked and can be applied consistently across environments.
+                </p>
+                
+                <h3>Setup Drizzle Kit</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">drizzle.config.ts</span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">import</span> { defineConfig } <span class="token-keyword">from</span> <span class="token-string">'drizzle-kit'</span>;
+
+<span class="token-keyword">export default</span> <span class="token-function">defineConfig</span>({
+    schema: [
+        <span class="token-string">'./src/db/schema.ts'</span>,
+        <span class="token-string">'./node_modules/brackets-drizzle-db/dist/db/schema/index.js'</span>,
+    ],
+    out: <span class="token-string">'./drizzle'</span>,
+    dialect: <span class="token-string">'postgresql'</span>,
+    dbCredentials: {
+        url: process.env.DATABASE_URL!,
+    },
+});</code></pre>
+                </div>
+                
+                <h3>Common Commands</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">Migration Commands</span>
+                        <span class="code-block-language">bash</span>
+                    </div>
+                    <pre><code><span class="token-comment"># Generate migration from schema changes</span>
+npx drizzle-kit generate
+
+<span class="token-comment"># Apply pending migrations</span>
+npx drizzle-kit migrate
+
+<span class="token-comment"># Push schema directly (dev only)</span>
+npx drizzle-kit push
+
+<span class="token-comment"># View schema in Drizzle Studio</span>
+npx drizzle-kit studio</code></pre>
+                </div>
+                
+                <h3>Zero-Downtime Migrations</h3>
+                <div class="alert alert-success">
+                    <div class="alert-title">✅ Safe Migration Practices</div>
+                    <ul>
+                        <li><strong>Add columns as nullable first</strong>, then backfill, then add NOT NULL</li>
+                        <li><strong>Create indexes concurrently</strong> to avoid table locks</li>
+                        <li><strong>Never rename columns</strong> - add new, migrate data, drop old</li>
+                        <li><strong>Test migrations on a copy</strong> of production data</li>
+                    </ul>
+                </div>
+            </section>
+            
+            <!-- Navigation Footer -->
+            <footer class="doc-footer">
+                <div class="footer-nav">
+                    <span class="footer-nav-label">Previous</span>
+                    <a href="api-reference.html" class="footer-nav-link">← API Reference</a>
+                </div>
+                <div class="footer-nav">
+                    <span class="footer-nav-label">Start Over</span>
+                    <a href="index.html" class="footer-nav-link">Back to Overview →</a>
+                </div>
+            </footer>
+        </main>
+    </div>
+    
+    <script>
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+    </script>
+</body>
+</html>
+

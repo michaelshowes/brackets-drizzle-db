@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Reference - Brackets Drizzle DB</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/schema-diagrams.css">
+    <link rel="stylesheet" href="css/code-examples.css">
+</head>
+<body>
+    <button class="mobile-menu-toggle" onclick="toggleSidebar()">☰ Menu</button>
+    
+    <div class="page-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">Brackets Drizzle DB</div>
+                <div class="sidebar-version">v2.1.0</div>
+            </div>
+            
+            <nav>
+                <div class="nav-section">
+                    <div class="nav-section-title">Getting Started</div>
+                    <ul class="nav-list">
+                        <li class="nav-item"><a href="index.html" class="nav-link">Overview</a></li>
+                        <li class="nav-item"><a href="architecture.html" class="nav-link">Architecture</a></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Core Concepts</div>
+                    <ul class="nav-list">
+                        <li class="nav-item"><a href="database-schema.html" class="nav-link">Database Schema</a></li>
+                        <li class="nav-item"><a href="storage-handlers.html" class="nav-link">Storage Handlers</a></li>
+                        <li class="nav-item"><a href="transformers.html" class="nav-link">Transformers</a></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Reference</div>
+                    <ul class="nav-list">
+                        <li class="nav-item"><a href="api-reference.html" class="nav-link active">API Reference</a></li>
+                        <li class="nav-item"><a href="scaling-guide.html" class="nav-link">Scaling Guide</a></li>
+                    </ul>
+                </div>
+            </nav>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <nav class="breadcrumbs">
+                <a href="index.html">Home</a>
+                <span class="breadcrumb-separator">›</span>
+                <span>API Reference</span>
+            </nav>
+            
+            <div class="page-header">
+                <h1>API Reference</h1>
+                <p class="page-subtitle">
+                    Complete documentation of all exported classes, functions, types, and interfaces
+                </p>
+            </div>
+            
+            <div class="toc">
+                <div class="toc-title">On This Page</div>
+                <ul class="toc-list">
+                    <li><a href="#exports">Package Exports</a></li>
+                    <li><a href="#sql-database">SqlDatabase Class</a></li>
+                    <li><a href="#create-database">createDatabase Function</a></li>
+                    <li><a href="#schema-exports">Schema Exports</a></li>
+                    <li><a href="#types">Type Exports</a></li>
+                    <li><a href="#usage-examples">Usage Examples</a></li>
+                </ul>
+            </div>
+            
+            <!-- Package Exports -->
+            <section>
+                <h2 id="exports">Package Exports</h2>
+                <p>The package exports are organized in <code>src/index.ts</code>:</p>
+                
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">
+                            <span class="code-block-filename-icon">📄</span>
+                            src/index.ts
+                        </span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">export</span> * <span class="token-keyword">from</span> <span class="token-string">'./storage'</span>;      <span class="token-comment">// SqlDatabase class</span>
+<span class="token-keyword">export</span> * <span class="token-keyword">from</span> <span class="token-string">'./db'</span>;           <span class="token-comment">// createDatabase, DrizzleDatabase type</span>
+<span class="token-keyword">export</span> * <span class="token-keyword">from</span> <span class="token-string">'./db/schema'</span>;    <span class="token-comment">// All tables, enums, and types</span></code></pre>
+                </div>
+                
+                <h3>Import Patterns</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">Import Examples</span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-comment">// Main class and database factory</span>
+<span class="token-keyword">import</span> { SqlDatabase, createDatabase } <span class="token-keyword">from</span> <span class="token-string">'brackets-drizzle-db'</span>;
+
+<span class="token-comment">// Schema tables (for direct queries or migrations)</span>
+<span class="token-keyword">import</span> { 
+    participant, 
+    stage, 
+    stageSettings,
+    group, 
+    round, 
+    match, 
+    matchGame,
+    participantMatchResult,
+    participantMatchGameResult,
+} <span class="token-keyword">from</span> <span class="token-string">'brackets-drizzle-db'</span>;
+
+<span class="token-comment">// Enums (for custom queries)</span>
+<span class="token-keyword">import</span> {
+    stageTypeEnum,
+    grandFinalTypeEnum,
+    roundRobinModeEnum,
+    seedOrderingEnum,
+    matchStatusEnum,
+    matchResultEnum,
+} <span class="token-keyword">from</span> <span class="token-string">'brackets-drizzle-db'</span>;
+
+<span class="token-comment">// Type definitions</span>
+<span class="token-keyword">import type</span> {
+    Stage,
+    NewStage,
+    Match,
+    Participant,
+    DrizzleDatabase,
+} <span class="token-keyword">from</span> <span class="token-string">'brackets-drizzle-db'</span>;</code></pre>
+                </div>
+            </section>
+            
+            <!-- SqlDatabase Class -->
+            <section>
+                <h2 id="sql-database">SqlDatabase Class</h2>
+                <p>
+                    The main class that implements the <code>CrudInterface</code> from brackets-manager.
+                </p>
+                
+                <div class="api-signature">
+                    <span class="api-signature-method">class</span> 
+                    <span class="api-signature-type">SqlDatabase</span> 
+                    <span class="api-signature-method">implements</span> 
+                    <span class="api-signature-type">CrudInterface</span>
+                </div>
+                
+                <h3>Constructor</h3>
+                <div class="api-signature">
+                    <span class="api-signature-method">constructor</span>(db: <span class="api-signature-type">DrizzleDatabase</span>)
+                </div>
+                
+                <table class="param-table">
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="param-name">db</span></td>
+                            <td><span class="param-type">DrizzleDatabase</span></td>
+                            <td>A Drizzle ORM database instance (created via <code>createDatabase()</code> or your own Drizzle setup)</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h3>Methods</h3>
+                
+                <!-- insert() -->
+                <h4>insert()</h4>
+                <p>Inserts one or more records into the specified table.</p>
+                
+                <div class="api-signature">
+                    <span class="api-signature-method">insert</span>&lt;T extends keyof <span class="api-signature-type">DataTypes</span>&gt;(<br>
+                    &nbsp;&nbsp;table: <span class="api-signature-type">T</span>,<br>
+                    &nbsp;&nbsp;value: <span class="api-signature-type">OmitId</span>&lt;DataTypes[T]&gt;<br>
+                    ): <span class="api-signature-return">Promise&lt;number&gt;</span>
+                </div>
+                
+                <div class="api-signature">
+                    <span class="api-signature-method">insert</span>&lt;T extends keyof <span class="api-signature-type">DataTypes</span>&gt;(<br>
+                    &nbsp;&nbsp;table: <span class="api-signature-type">T</span>,<br>
+                    &nbsp;&nbsp;values: <span class="api-signature-type">OmitId</span>&lt;DataTypes[T]&gt;[]<br>
+                    ): <span class="api-signature-return">Promise&lt;boolean&gt;</span>
+                </div>
+                
+                <table class="param-table">
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="param-name">table</span></td>
+                            <td><span class="param-type">'participant' | 'stage' | 'group' | 'round' | 'match' | 'match_game'</span></td>
+                            <td>The table to insert into</td>
+                        </tr>
+                        <tr>
+                            <td><span class="param-name">value(s)</span></td>
+                            <td><span class="param-type">OmitId&lt;DataTypes[T]&gt;</span></td>
+                            <td>Record data without ID (auto-generated)</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="alert alert-info">
+                    <div class="alert-title">Return Values</div>
+                    <ul>
+                        <li><strong>Single insert:</strong> Returns the new record's ID (<code>number</code>), or <code>-1</code> on failure</li>
+                        <li><strong>Batch insert:</strong> Returns <code>true</code> on success, <code>false</code> on failure</li>
+                    </ul>
+                </div>
+                
+                <!-- select() -->
+                <h4>select()</h4>
+                <p>Retrieves records from the specified table.</p>
+                
+                <div class="api-signature">
+                    <span class="api-signature-method">select</span>&lt;T extends keyof <span class="api-signature-type">DataTypes</span>&gt;(<br>
+                    &nbsp;&nbsp;table: <span class="api-signature-type">T</span><br>
+                    ): <span class="api-signature-return">Promise&lt;DataTypes[T][] | null&gt;</span>
+                </div>
+                
+                <div class="api-signature">
+                    <span class="api-signature-method">select</span>&lt;T extends keyof <span class="api-signature-type">DataTypes</span>&gt;(<br>
+                    &nbsp;&nbsp;table: <span class="api-signature-type">T</span>,<br>
+                    &nbsp;&nbsp;id: <span class="api-signature-type">number</span><br>
+                    ): <span class="api-signature-return">Promise&lt;DataTypes[T] | null&gt;</span>
+                </div>
+                
+                <div class="api-signature">
+                    <span class="api-signature-method">select</span>&lt;T extends keyof <span class="api-signature-type">DataTypes</span>&gt;(<br>
+                    &nbsp;&nbsp;table: <span class="api-signature-type">T</span>,<br>
+                    &nbsp;&nbsp;filter: <span class="api-signature-type">Partial</span>&lt;DataTypes[T]&gt;<br>
+                    ): <span class="api-signature-return">Promise&lt;DataTypes[T][] | null&gt;</span>
+                </div>
+                
+                <table class="param-table">
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="param-name">table</span></td>
+                            <td><span class="param-type">keyof DataTypes</span></td>
+                            <td>The table to query</td>
+                        </tr>
+                        <tr>
+                            <td><span class="param-name">id</span> <span class="param-optional">(optional)</span></td>
+                            <td><span class="param-type">number</span></td>
+                            <td>Select a single record by ID</td>
+                        </tr>
+                        <tr>
+                            <td><span class="param-name">filter</span> <span class="param-optional">(optional)</span></td>
+                            <td><span class="param-type">Partial&lt;DataTypes[T]&gt;</span></td>
+                            <td>Filter criteria (AND logic for multiple fields)</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <!-- update() -->
+                <h4>update()</h4>
+                <p>Updates existing records in the specified table.</p>
+                
+                <div class="api-signature">
+                    <span class="api-signature-method">update</span>&lt;T extends keyof <span class="api-signature-type">DataTypes</span>&gt;(<br>
+                    &nbsp;&nbsp;table: <span class="api-signature-type">T</span>,<br>
+                    &nbsp;&nbsp;id: <span class="api-signature-type">number</span>,<br>
+                    &nbsp;&nbsp;value: <span class="api-signature-type">DataTypes</span>[T]<br>
+                    ): <span class="api-signature-return">Promise&lt;boolean&gt;</span>
+                </div>
+                
+                <div class="api-signature">
+                    <span class="api-signature-method">update</span>&lt;T extends keyof <span class="api-signature-type">DataTypes</span>&gt;(<br>
+                    &nbsp;&nbsp;table: <span class="api-signature-type">T</span>,<br>
+                    &nbsp;&nbsp;filter: <span class="api-signature-type">Partial</span>&lt;DataTypes[T]&gt;,<br>
+                    &nbsp;&nbsp;value: <span class="api-signature-type">Partial</span>&lt;DataTypes[T]&gt;<br>
+                    ): <span class="api-signature-return">Promise&lt;boolean&gt;</span>
+                </div>
+                
+                <!-- delete() -->
+                <h4>delete()</h4>
+                <p>Deletes records from the specified table.</p>
+                
+                <div class="api-signature">
+                    <span class="api-signature-method">delete</span>&lt;T extends keyof <span class="api-signature-type">DataTypes</span>&gt;(<br>
+                    &nbsp;&nbsp;table: <span class="api-signature-type">T</span><br>
+                    ): <span class="api-signature-return">Promise&lt;boolean&gt;</span>
+                </div>
+                
+                <div class="api-signature">
+                    <span class="api-signature-method">delete</span>&lt;T extends keyof <span class="api-signature-type">DataTypes</span>&gt;(<br>
+                    &nbsp;&nbsp;table: <span class="api-signature-type">T</span>,<br>
+                    &nbsp;&nbsp;filter: <span class="api-signature-type">Partial</span>&lt;DataTypes[T]&gt;<br>
+                    ): <span class="api-signature-return">Promise&lt;boolean&gt;</span>
+                </div>
+                
+                <div class="alert alert-warning">
+                    <div class="alert-title">⚠️ Calling delete() without a filter</div>
+                    <p>
+                        Calling <code>delete(table)</code> without a filter will delete <strong>ALL</strong> records 
+                        from that table. Use with caution.
+                    </p>
+                </div>
+            </section>
+            
+            <!-- createDatabase Function -->
+            <section>
+                <h2 id="create-database">createDatabase Function</h2>
+                <p>Factory function that creates a Drizzle ORM database instance.</p>
+                
+                <div class="api-signature">
+                    <span class="api-signature-method">function</span> 
+                    <span class="api-signature-method">createDatabase</span>(connectionString: <span class="api-signature-type">string</span>): <span class="api-signature-return">DrizzleDatabase</span>
+                </div>
+                
+                <table class="param-table">
+                    <thead>
+                        <tr>
+                            <th>Parameter</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="param-name">connectionString</span></td>
+                            <td><span class="param-type">string</span></td>
+                            <td>PostgreSQL connection URL (e.g., <code>postgresql://user:pass@host:5432/db</code>)</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h3>Implementation</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">
+                            <span class="code-block-filename-icon">📄</span>
+                            src/db/index.ts
+                        </span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">import</span> { drizzle } <span class="token-keyword">from</span> <span class="token-string">'drizzle-orm/postgres-js'</span>;
+<span class="token-keyword">import</span> postgres <span class="token-keyword">from</span> <span class="token-string">'postgres'</span>;
+<span class="token-keyword">import</span> * <span class="token-keyword">as</span> schema <span class="token-keyword">from</span> <span class="token-string">'./schema'</span>;
+
+<span class="token-keyword">export type</span> <span class="token-type">DrizzleDatabase</span> = ReturnType&lt;<span class="token-keyword">typeof</span> createDatabase&gt;;
+
+<span class="token-keyword">export function</span> <span class="token-function">createDatabase</span>(connectionString: <span class="token-type">string</span>) {
+    <span class="token-keyword">const</span> client = <span class="token-function">postgres</span>(connectionString);
+    <span class="token-keyword">return</span> <span class="token-function">drizzle</span>(client, { schema });
+}</code></pre>
+                </div>
+            </section>
+            
+            <!-- Schema Exports -->
+            <section>
+                <h2 id="schema-exports">Schema Exports</h2>
+                <p>All Drizzle schema definitions are exported for use in your project.</p>
+                
+                <h3>Tables</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Export</th>
+                            <th>Description</th>
+                            <th>Related Types</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>participant</code></td>
+                            <td>Participant table definition</td>
+                            <td><code>Participant</code>, <code>NewParticipant</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>stage</code></td>
+                            <td>Stage table definition</td>
+                            <td><code>Stage</code>, <code>NewStage</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>stageSettings</code></td>
+                            <td>Stage settings table</td>
+                            <td><code>StageSettings</code>, <code>NewStageSettings</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>group</code></td>
+                            <td>Group table definition</td>
+                            <td><code>Group</code>, <code>NewGroup</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>round</code></td>
+                            <td>Round table definition</td>
+                            <td><code>Round</code>, <code>NewRound</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>match</code></td>
+                            <td>Match table definition</td>
+                            <td><code>Match</code>, <code>NewMatch</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>matchGame</code></td>
+                            <td>Match game table definition</td>
+                            <td><code>MatchGame</code>, <code>NewMatchGame</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>participantMatchResult</code></td>
+                            <td>Match opponent results</td>
+                            <td><code>ParticipantMatchResult</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>participantMatchGameResult</code></td>
+                            <td>Game opponent results</td>
+                            <td><code>ParticipantMatchGameResult</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h3>Enums</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Export</th>
+                            <th>Values</th>
+                            <th>TypeScript Type</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>stageTypeEnum</code></td>
+                            <td><code>ROUND_ROBIN</code>, <code>SINGLE_ELIMINATION</code>, <code>DOUBLE_ELIMINATION</code></td>
+                            <td><code>StageType</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>grandFinalTypeEnum</code></td>
+                            <td><code>NONE</code>, <code>SIMPLE</code>, <code>DOUBLE</code></td>
+                            <td><code>GrandFinalType</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>roundRobinModeEnum</code></td>
+                            <td><code>SIMPLE</code>, <code>DOUBLE</code></td>
+                            <td><code>RoundRobinMode</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>seedOrderingEnum</code></td>
+                            <td><code>NATURAL</code>, <code>REVERSE</code>, etc.</td>
+                            <td><code>SeedOrdering</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>matchStatusEnum</code></td>
+                            <td><code>LOCKED</code>, <code>WAITING</code>, <code>READY</code>, <code>RUNNING</code>, <code>COMPLETED</code>, <code>ARCHIVED</code></td>
+                            <td><code>MatchStatus</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>matchResultEnum</code></td>
+                            <td><code>WIN</code>, <code>DRAW</code>, <code>LOSS</code></td>
+                            <td><code>MatchResult</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h3>Relations</h3>
+                <p>Drizzle relation definitions are also exported for relational queries:</p>
+                
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">Relation Exports</span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">import</span> {
+    stageRelations,
+    stageSettingsRelations,
+    groupRelations,
+    roundRelations,
+    matchRelations,
+    matchGameRelations,
+    participantRelations,
+    participantMatchResultRelations,
+    participantMatchGameResultRelations,
+} <span class="token-keyword">from</span> <span class="token-string">'brackets-drizzle-db'</span>;</code></pre>
+                </div>
+            </section>
+            
+            <!-- Types -->
+            <section>
+                <h2 id="types">Type Exports</h2>
+                
+                <h3>Database Types</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>DrizzleDatabase</code></td>
+                            <td>Type of the Drizzle database instance</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h3>Entity Types (Inferred from Schema)</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Select Type</th>
+                            <th>Insert Type</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>Stage</code></td>
+                            <td><code>NewStage</code></td>
+                            <td>Stage table row</td>
+                        </tr>
+                        <tr>
+                            <td><code>StageSettings</code></td>
+                            <td><code>NewStageSettings</code></td>
+                            <td>Stage settings row</td>
+                        </tr>
+                        <tr>
+                            <td><code>Group</code></td>
+                            <td><code>NewGroup</code></td>
+                            <td>Group table row</td>
+                        </tr>
+                        <tr>
+                            <td><code>Round</code></td>
+                            <td><code>NewRound</code></td>
+                            <td>Round table row</td>
+                        </tr>
+                        <tr>
+                            <td><code>Match</code></td>
+                            <td><code>NewMatch</code></td>
+                            <td>Match table row</td>
+                        </tr>
+                        <tr>
+                            <td><code>MatchGame</code></td>
+                            <td><code>NewMatchGame</code></td>
+                            <td>Match game row</td>
+                        </tr>
+                        <tr>
+                            <td><code>Participant</code></td>
+                            <td><code>NewParticipant</code></td>
+                            <td>Participant row</td>
+                        </tr>
+                        <tr>
+                            <td><code>ParticipantMatchResult</code></td>
+                            <td><code>NewParticipantMatchResult</code></td>
+                            <td>Match opponent result</td>
+                        </tr>
+                        <tr>
+                            <td><code>ParticipantMatchGameResult</code></td>
+                            <td><code>NewParticipantMatchGameResult</code></td>
+                            <td>Game opponent result</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <h3>Enum Types</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">Enum Type Definitions</span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-comment">// Inferred from enum definitions</span>
+<span class="token-keyword">type</span> <span class="token-type">StageType</span> = <span class="token-string">'ROUND_ROBIN'</span> | <span class="token-string">'SINGLE_ELIMINATION'</span> | <span class="token-string">'DOUBLE_ELIMINATION'</span>;
+<span class="token-keyword">type</span> <span class="token-type">GrandFinalType</span> = <span class="token-string">'NONE'</span> | <span class="token-string">'SIMPLE'</span> | <span class="token-string">'DOUBLE'</span>;
+<span class="token-keyword">type</span> <span class="token-type">RoundRobinMode</span> = <span class="token-string">'SIMPLE'</span> | <span class="token-string">'DOUBLE'</span>;
+<span class="token-keyword">type</span> <span class="token-type">SeedOrdering</span> = <span class="token-string">'NATURAL'</span> | <span class="token-string">'REVERSE'</span> | <span class="token-string">'HALF_SHIFT'</span> | ...;
+<span class="token-keyword">type</span> <span class="token-type">MatchStatus</span> = <span class="token-string">'LOCKED'</span> | <span class="token-string">'WAITING'</span> | <span class="token-string">'READY'</span> | <span class="token-string">'RUNNING'</span> | <span class="token-string">'COMPLETED'</span> | <span class="token-string">'ARCHIVED'</span>;
+<span class="token-keyword">type</span> <span class="token-type">MatchResult</span> = <span class="token-string">'WIN'</span> | <span class="token-string">'DRAW'</span> | <span class="token-string">'LOSS'</span>;</code></pre>
+                </div>
+            </section>
+            
+            <!-- Usage Examples -->
+            <section>
+                <h2 id="usage-examples">Usage Examples</h2>
+                
+                <h3>Basic Setup</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">Basic Setup</span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">import</span> { SqlDatabase, createDatabase } <span class="token-keyword">from</span> <span class="token-string">'brackets-drizzle-db'</span>;
+<span class="token-keyword">import</span> { BracketsManager } <span class="token-keyword">from</span> <span class="token-string">'brackets-manager'</span>;
+
+<span class="token-keyword">const</span> db = <span class="token-function">createDatabase</span>(process.env.DATABASE_URL!);
+<span class="token-keyword">const</span> storage = <span class="token-keyword">new</span> <span class="token-function">SqlDatabase</span>(db);
+<span class="token-keyword">const</span> manager = <span class="token-keyword">new</span> <span class="token-function">BracketsManager</span>(storage);
+
+<span class="token-comment">// Create a tournament stage</span>
+<span class="token-keyword">const</span> stage = <span class="token-keyword">await</span> manager.create.<span class="token-function">stage</span>({
+    tournamentId: <span class="token-number">1</span>,
+    name: <span class="token-string">'Main Event'</span>,
+    type: <span class="token-string">'single_elimination'</span>,
+    seeding: [
+        { name: <span class="token-string">'Team Alpha'</span> },
+        { name: <span class="token-string">'Team Beta'</span> },
+        { name: <span class="token-string">'Team Gamma'</span> },
+        { name: <span class="token-string">'Team Delta'</span> },
+    ],
+});</code></pre>
+                </div>
+                
+                <h3>Using with Existing Drizzle Instance</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">With Existing Drizzle</span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">import</span> { SqlDatabase } <span class="token-keyword">from</span> <span class="token-string">'brackets-drizzle-db'</span>;
+<span class="token-keyword">import</span> { db } <span class="token-keyword">from</span> <span class="token-string">'./your-db-setup'</span>;
+
+<span class="token-comment">// Use your existing Drizzle instance</span>
+<span class="token-keyword">const</span> storage = <span class="token-keyword">new</span> <span class="token-function">SqlDatabase</span>(db);
+<span class="token-keyword">const</span> manager = <span class="token-keyword">new</span> <span class="token-function">BracketsManager</span>(storage);</code></pre>
+                </div>
+                
+                <h3>Direct Database Queries</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">Direct Drizzle Queries</span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">import</span> { createDatabase, match, matchStatusEnum } <span class="token-keyword">from</span> <span class="token-string">'brackets-drizzle-db'</span>;
+<span class="token-keyword">import</span> { eq } <span class="token-keyword">from</span> <span class="token-string">'drizzle-orm'</span>;
+
+<span class="token-keyword">const</span> db = <span class="token-function">createDatabase</span>(process.env.DATABASE_URL!);
+
+<span class="token-comment">// Direct query using Drizzle</span>
+<span class="token-keyword">const</span> completedMatches = <span class="token-keyword">await</span> db
+    .<span class="token-function">select</span>()
+    .<span class="token-function">from</span>(match)
+    .<span class="token-function">where</span>(<span class="token-function">eq</span>(match.status, <span class="token-string">'COMPLETED'</span>));
+
+<span class="token-comment">// Count matches by status</span>
+<span class="token-keyword">const</span> matchCounts = <span class="token-keyword">await</span> db
+    .<span class="token-function">select</span>({
+        status: match.status,
+        count: <span class="token-function">sql</span><span class="token-string">`count(*)`</span>.<span class="token-function">mapWith</span>(Number),
+    })
+    .<span class="token-function">from</span>(match)
+    .<span class="token-function">groupBy</span>(match.status);</code></pre>
+                </div>
+                
+                <h3>Custom Match Data</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">Storing Custom Data</span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">import type</span> { Match } <span class="token-keyword">from</span> <span class="token-string">'brackets-model'</span>;
+
+<span class="token-comment">// Define your custom match type</span>
+<span class="token-keyword">type</span> <span class="token-type">MatchWithSchedule</span> = Match & {
+    extra: {
+        scheduledTime: <span class="token-type">string</span>;
+        venue: <span class="token-type">string</span>;
+        streamUrl?: <span class="token-type">string</span>;
+        referee?: <span class="token-type">string</span>;
+    };
+};
+
+<span class="token-comment">// Update match with custom data</span>
+<span class="token-keyword">await</span> manager.update.<span class="token-function">match</span>&lt;<span class="token-type">MatchWithSchedule</span>&gt;({
+    id: matchId,
+    extra: {
+        scheduledTime: <span class="token-string">'2024-03-15T14:00:00Z'</span>,
+        venue: <span class="token-string">'Main Stage'</span>,
+        streamUrl: <span class="token-string">'https://twitch.tv/tournament'</span>,
+    },
+});</code></pre>
+                </div>
+            </section>
+            
+            <!-- Navigation Footer -->
+            <footer class="doc-footer">
+                <div class="footer-nav">
+                    <span class="footer-nav-label">Previous</span>
+                    <a href="transformers.html" class="footer-nav-link">← Transformers</a>
+                </div>
+                <div class="footer-nav">
+                    <span class="footer-nav-label">Next</span>
+                    <a href="scaling-guide.html" class="footer-nav-link">Scaling Guide →</a>
+                </div>
+            </footer>
+        </main>
+    </div>
+    
+    <script>
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+    </script>
+</body>
+</html>
+

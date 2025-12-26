@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Brackets Drizzle DB - Documentation</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap"
+            rel="stylesheet"
+        />
+        <link rel="stylesheet" href="css/main.css" />
+        <link rel="stylesheet" href="css/schema-diagrams.css" />
+        <link rel="stylesheet" href="css/code-examples.css" />
+    </head>
+    <body>
+        <button class="mobile-menu-toggle" onclick="toggleSidebar()">
+            ☰ Menu
+        </button>
+
+        <div class="page-wrapper">
+            <!-- Sidebar Navigation -->
+            <aside class="sidebar" id="sidebar">
+                <div class="sidebar-header">
+                    <div class="sidebar-logo">Brackets Drizzle DB</div>
+                    <div class="sidebar-version">v2.1.0</div>
+                </div>
+
+                <nav>
+                    <div class="nav-section">
+                        <div class="nav-section-title">Getting Started</div>
+                        <ul class="nav-list">
+                            <li class="nav-item">
+                                <a href="index.html" class="nav-link active"
+                                    >Overview</a
+                                >
+                            </li>
+                            <li class="nav-item">
+                                <a href="architecture.html" class="nav-link"
+                                    >Architecture</a
+                                >
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="nav-section">
+                        <div class="nav-section-title">Core Concepts</div>
+                        <ul class="nav-list">
+                            <li class="nav-item">
+                                <a href="database-schema.html" class="nav-link"
+                                    >Database Schema</a
+                                >
+                            </li>
+                            <li class="nav-item">
+                                <a href="storage-handlers.html" class="nav-link"
+                                    >Storage Handlers</a
+                                >
+                            </li>
+                            <li class="nav-item">
+                                <a href="transformers.html" class="nav-link"
+                                    >Transformers</a
+                                >
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="nav-section">
+                        <div class="nav-section-title">Reference</div>
+                        <ul class="nav-list">
+                            <li class="nav-item">
+                                <a href="api-reference.html" class="nav-link"
+                                    >API Reference</a
+                                >
+                            </li>
+                            <li class="nav-item">
+                                <a href="scaling-guide.html" class="nav-link"
+                                    >Scaling Guide</a
+                                >
+                            </li>
+                        </ul>
+                    </div>
+                </nav>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <div class="page-header animate-fade-in">
+                    <h1>Brackets Drizzle DB</h1>
+                    <p class="page-subtitle">
+                        A SQL database storage adapter for brackets-manager.js
+                        using Drizzle ORM and PostgreSQL
+                    </p>
+                </div>
+
+                <div class="alert alert-info animate-fade-in animate-delay-1">
+                    <div class="alert-title">
+                        📖 What This Documentation Covers
+                    </div>
+                    <p>
+                        This comprehensive documentation explains the internal
+                        architecture, database schema, data flow, and extension
+                        points of the brackets-drizzle-db package. It's designed
+                        to help you understand, maintain, and scale the
+                        codebase.
+                    </p>
+                </div>
+
+                <!-- Overview Section -->
+                <section class="animate-fade-in animate-delay-2">
+                    <h2 id="what-is-this">What is Brackets Drizzle DB?</h2>
+                    <p>
+                        <strong>brackets-drizzle-db</strong> is a storage
+                        adapter that implements the
+                        <code>CrudInterface</code> from
+                        <a
+                            href="https://drarig29.github.io/brackets-docs/"
+                            target="_blank"
+                            >brackets-manager</a
+                        >. It enables you to persist tournament bracket data to
+                        a PostgreSQL database using
+                        <a href="https://orm.drizzle.team/" target="_blank"
+                            >Drizzle ORM</a
+                        >.
+                    </p>
+
+                    <h3>Key Features</h3>
+                    <ul>
+                        <li>
+                            <strong>Full CRUD Support:</strong> Insert, Select,
+                            Update, and Delete operations for all bracket
+                            entities
+                        </li>
+                        <li>
+                            <strong>Type-Safe:</strong> Complete TypeScript
+                            definitions with Drizzle's type inference
+                        </li>
+                        <li>
+                            <strong>Extensible:</strong> JSON columns for custom
+                            data on matches, participants, and match games
+                        </li>
+                        <li>
+                            <strong>Tournament Types:</strong> Supports Single
+                            Elimination, Double Elimination, and Round Robin
+                            stages
+                        </li>
+                        <li>
+                            <strong>Drizzle ORM:</strong> Modern, performant,
+                            and type-safe database access
+                        </li>
+                    </ul>
+                </section>
+
+                <!-- Quick Start -->
+                <section class="animate-fade-in animate-delay-3">
+                    <h2 id="quick-start">Quick Start</h2>
+
+                    <h3>Installation</h3>
+                    <div class="code-block">
+                        <div class="code-block-header">
+                            <span class="code-block-filename">Terminal</span>
+                            <span class="code-block-language">bash</span>
+                        </div>
+                        <pre><code><span class="token-function">pnpm</span> add brackets-drizzle-db</code></pre>
+                    </div>
+
+                    <h3>Basic Usage</h3>
+                    <div class="code-block">
+                        <div class="code-block-header">
+                            <span class="code-block-filename">
+                                <span class="code-block-filename-icon">📄</span>
+                                setup.ts
+                            </span>
+                            <span class="code-block-language">typescript</span>
+                        </div>
+                        <pre><code><span class="token-keyword">import</span> { SqlDatabase, createDatabase } <span class="token-keyword">from</span> <span class="token-string">'brackets-drizzle-db'</span>;
+<span class="token-keyword">import</span> { BracketsManager } <span class="token-keyword">from</span> <span class="token-string">'brackets-manager'</span>;
+
+<span class="token-comment">// Create the Drizzle database instance</span>
+<span class="token-keyword">const</span> db = <span class="token-function">createDatabase</span>(process.env.DATABASE_URL!);
+
+<span class="token-comment">// Create the storage adapter</span>
+<span class="token-keyword">const</span> storage = <span class="token-keyword">new</span> <span class="token-function">SqlDatabase</span>(db);
+
+<span class="token-comment">// Initialize the brackets manager</span>
+<span class="token-keyword">const</span> manager = <span class="token-keyword">new</span> <span class="token-function">BracketsManager</span>(storage);</code></pre>
+                    </div>
+                </section>
+
+                <!-- Core Components Overview -->
+                <section class="animate-fade-in animate-delay-4">
+                    <h2 id="core-components">Core Components</h2>
+                    <p>
+                        The codebase is organized into four main areas, each
+                        with a specific responsibility:
+                    </p>
+
+                    <div class="card-grid">
+                        <a href="database-schema.html" class="card">
+                            <h3 class="card-title">🗄️ Database Schema</h3>
+                            <p class="card-description">
+                                Drizzle ORM table definitions, PostgreSQL enums,
+                                and relationship configurations for storing
+                                tournament data.
+                            </p>
+                            <span class="badge badge-primary">9 Tables</span>
+                            <span class="badge badge-secondary">6 Enums</span>
+                        </a>
+
+                        <a href="storage-handlers.html" class="card">
+                            <h3 class="card-title">⚡ Storage Handlers</h3>
+                            <p class="card-description">
+                                CRUD operation dispatchers that route database
+                                operations to entity-specific handlers.
+                            </p>
+                            <span class="badge badge-primary"
+                                >4 Operations</span
+                            >
+                            <span class="badge badge-secondary"
+                                >7 Entities</span
+                            >
+                        </a>
+
+                        <a href="transformers.html" class="card">
+                            <h3 class="card-title">🔄 Transformers</h3>
+                            <p class="card-description">
+                                Bidirectional data converters between
+                                brackets-manager models and Drizzle database
+                                schemas.
+                            </p>
+                            <span class="badge badge-primary">7 Model</span>
+                            <span class="badge badge-secondary">6 Enum</span>
+                        </a>
+
+                        <a href="api-reference.html" class="card">
+                            <h3 class="card-title">📚 API Reference</h3>
+                            <p class="card-description">
+                                Complete documentation of all exported classes,
+                                functions, types, and interfaces.
+                            </p>
+                            <span class="badge badge-success">Full API</span>
+                        </a>
+                    </div>
+                </section>
+
+                <!-- High-Level Architecture Diagram -->
+                <section>
+                    <h2 id="how-it-works">How It Works</h2>
+                    <p>
+                        Here's a high-level view of how data flows through the
+                        system:
+                    </p>
+
+                    <div class="diagram">
+                        <div class="diagram-title">Data Flow Architecture</div>
+                        <div class="flow-container">
+                            <div class="flow-row">
+                                <div class="flow-box flow-box-primary">
+                                    <strong>brackets-manager</strong><br />
+                                    <small>Tournament Logic</small>
+                                </div>
+                            </div>
+                            <div class="flow-arrow flow-arrow-down"></div>
+                            <div class="flow-row">
+                                <div class="flow-box flow-box-secondary">
+                                    <strong>SqlDatabase</strong><br />
+                                    <small>CrudInterface Implementation</small>
+                                </div>
+                            </div>
+                            <div class="flow-arrow flow-arrow-down"></div>
+                            <div class="flow-row">
+                                <div class="flow-box">
+                                    <strong>Storage Handlers</strong><br />
+                                    <small>Route by Table Type</small>
+                                </div>
+                            </div>
+                            <div class="flow-arrow flow-arrow-down"></div>
+                            <div class="flow-row">
+                                <div class="flow-box">
+                                    <strong>Transformers</strong><br />
+                                    <small>Data Conversion</small>
+                                </div>
+                                <span
+                                    class="flow-arrow flow-arrow-right"
+                                ></span>
+                                <div class="flow-box flow-box-tertiary">
+                                    <strong>Drizzle ORM</strong><br />
+                                    <small>Schema & Queries</small>
+                                </div>
+                            </div>
+                            <div class="flow-arrow flow-arrow-down"></div>
+                            <div class="flow-row">
+                                <div class="flow-box flow-box-tertiary">
+                                    <strong>PostgreSQL</strong><br />
+                                    <small>Persistent Storage</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Project Structure -->
+                <section>
+                    <h2 id="project-structure">Project Structure</h2>
+                    <p>
+                        Understanding the file organization helps navigate the
+                        codebase:
+                    </p>
+
+                    <div class="file-tree">
+                        <span class="file-tree-folder">src/</span>
+                        ├── <span class="file-tree-file">index.ts</span>
+                        <span style="color: var(--color-text-muted)"
+                            ># Main exports</span
+                        >
+                        ├── <span class="file-tree-file">storage.ts</span>
+                        <span style="color: var(--color-text-muted)"
+                            ># SqlDatabase class (CrudInterface)</span
+                        >
+                        ├── <span class="file-tree-file">types.ts</span>
+                        <span style="color: var(--color-text-muted)"
+                            ># Custom type definitions</span
+                        >
+                        │ ├── <span class="file-tree-folder">db/</span> │ ├──
+                        <span class="file-tree-file">index.ts</span>
+                        <span style="color: var(--color-text-muted)"
+                            ># Database factory & exports</span
+                        >
+                        │ └── <span class="file-tree-folder">schema/</span> │
+                        ├── <span class="file-tree-file">enums.ts</span>
+                        <span style="color: var(--color-text-muted)"
+                            ># PostgreSQL enum definitions</span
+                        >
+                        │ ├── <span class="file-tree-file">tournament.ts</span>
+                        <span style="color: var(--color-text-muted)"
+                            ># Tournament table</span
+                        >
+                        │ ├── <span class="file-tree-file">stage.ts</span>
+                        <span style="color: var(--color-text-muted)"
+                            ># Stage & StageSettings tables</span
+                        >
+                        │ ├── <span class="file-tree-file">group.ts</span>
+                        <span style="color: var(--color-text-muted)"
+                            ># Group table</span
+                        >
+                        │ ├── <span class="file-tree-file">round.ts</span>
+                        <span style="color: var(--color-text-muted)"
+                            ># Round table</span
+                        >
+                        │ ├── <span class="file-tree-file">match.ts</span>
+                        <span style="color: var(--color-text-muted)"
+                            ># Match & ParticipantMatchResult</span
+                        >
+                        │ ├── <span class="file-tree-file">match-game.ts</span>
+                        <span style="color: var(--color-text-muted)"
+                            ># MatchGame & ParticipantMatchGameResult</span
+                        >
+                        │ ├──
+                        <span class="file-tree-file">participant.ts</span>
+                        <span style="color: var(--color-text-muted)"
+                            ># Participant table</span
+                        >
+                        │ └── <span class="file-tree-file">index.ts</span>
+                        <span style="color: var(--color-text-muted)"
+                            ># Schema exports</span
+                        >
+                        │ ├──
+                        <span class="file-tree-folder">storage-handlers/</span>
+                        │ ├── <span class="file-tree-file">insert.ts</span>
+                        <span style="color: var(--color-text-muted)"
+                            ># Insert dispatch</span
+                        >
+                        │ ├── <span class="file-tree-file">select.ts</span>
+                        <span style="color: var(--color-text-muted)"
+                            ># Select dispatch</span
+                        >
+                        │ ├── <span class="file-tree-file">update.ts</span>
+                        <span style="color: var(--color-text-muted)"
+                            ># Update dispatch</span
+                        >
+                        │ ├── <span class="file-tree-file">delete.ts</span>
+                        <span style="color: var(--color-text-muted)"
+                            ># Delete dispatch</span
+                        >
+                        │ ├──
+                        <span class="file-tree-folder">insert-handlers/</span>
+                        <span style="color: var(--color-text-muted)"
+                            ># Per-entity insert logic</span
+                        >
+                        │ ├──
+                        <span class="file-tree-folder">select-handlers/</span>
+                        <span style="color: var(--color-text-muted)"
+                            ># Per-entity select logic</span
+                        >
+                        │ ├──
+                        <span class="file-tree-folder">update-handlers/</span>
+                        <span style="color: var(--color-text-muted)"
+                            ># Per-entity update logic</span
+                        >
+                        │ └──
+                        <span class="file-tree-folder">delete-handlers/</span>
+                        <span style="color: var(--color-text-muted)"
+                            ># Per-entity delete logic</span
+                        >
+                        │ └──
+                        <span class="file-tree-folder">transformers/</span> ├──
+                        <span class="file-tree-folder">enum/</span>
+                        <span style="color: var(--color-text-muted)"
+                            ># Enum transformers</span
+                        >
+                        │ ├──
+                        <span class="file-tree-file">stage-type.ts</span> │ ├──
+                        <span class="file-tree-file">match-status.ts</span> │
+                        ├──
+                        <span class="file-tree-file">match-result.ts</span> │
+                        └── <span class="file-tree-file">...</span> └──
+                        <span class="file-tree-folder">model/</span>
+                        <span style="color: var(--color-text-muted)"
+                            ># Model transformers</span
+                        >
+                        ├── <span class="file-tree-file">stage.ts</span> ├──
+                        <span class="file-tree-file">match.ts</span> └──
+                        <span class="file-tree-file">...</span>
+                    </div>
+                </section>
+
+                <!-- Entity Overview Table -->
+                <section>
+                    <h2 id="entities">Entity Overview</h2>
+                    <p>
+                        The system manages seven core entities that represent
+                        tournament bracket structures:
+                    </p>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Entity</th>
+                                <th>Description</th>
+                                <th>Database Table</th>
+                                <th>Key Relations</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><code>tournament</code></td>
+                                <td>Container for stages and participants</td>
+                                <td><code>Tournament</code></td>
+                                <td>→ Stages, Participants</td>
+                            </tr>
+                            <tr>
+                                <td><code>participant</code></td>
+                                <td>
+                                    Teams or individuals competing in
+                                    tournaments
+                                </td>
+                                <td><code>Participant</code></td>
+                                <td>← Tournament, → Match Results</td>
+                            </tr>
+                            <tr>
+                                <td><code>stage</code></td>
+                                <td>
+                                    Tournament phases (elimination, round-robin)
+                                </td>
+                                <td>
+                                    <code>Stage</code> +
+                                    <code>StageSettings</code>
+                                </td>
+                                <td>← Tournament, → Groups, Rounds, Matches</td>
+                            </tr>
+                            <tr>
+                                <td><code>group</code></td>
+                                <td>
+                                    Divisions within a stage (pools, brackets)
+                                </td>
+                                <td><code>Group</code></td>
+                                <td>← Stage, → Rounds, Matches</td>
+                            </tr>
+                            <tr>
+                                <td><code>round</code></td>
+                                <td>
+                                    Round within a group (e.g., Quarter-finals)
+                                </td>
+                                <td><code>Round</code></td>
+                                <td>← Group, → Matches</td>
+                            </tr>
+                            <tr>
+                                <td><code>match</code></td>
+                                <td>
+                                    Individual matchup between two opponents
+                                </td>
+                                <td>
+                                    <code>Match</code> +
+                                    <code>ParticipantMatchResult</code>
+                                </td>
+                                <td>← Round, → Games, Results</td>
+                            </tr>
+                            <tr>
+                                <td><code>match_game</code></td>
+                                <td>
+                                    Individual game within a best-of-N match
+                                </td>
+                                <td>
+                                    <code>MatchGame</code> +
+                                    <code>ParticipantMatchGameResult</code>
+                                </td>
+                                <td>← Match, → Results</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </section>
+
+                <!-- Navigation Footer -->
+                <footer class="doc-footer">
+                    <div></div>
+                    <div class="footer-nav">
+                        <span class="footer-nav-label">Next</span>
+                        <a href="architecture.html" class="footer-nav-link"
+                            >Architecture →</a
+                        >
+                    </div>
+                </footer>
+            </main>
+        </div>
+
+        <script>
+            function toggleSidebar() {
+                document.getElementById('sidebar').classList.toggle('open');
+            }
+        </script>
+    </body>
+</html>

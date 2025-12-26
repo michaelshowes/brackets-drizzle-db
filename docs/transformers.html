@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transformers - Brackets Drizzle DB</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/schema-diagrams.css">
+    <link rel="stylesheet" href="css/code-examples.css">
+</head>
+<body>
+    <button class="mobile-menu-toggle" onclick="toggleSidebar()">☰ Menu</button>
+    
+    <div class="page-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">Brackets Drizzle DB</div>
+                <div class="sidebar-version">v2.1.0</div>
+            </div>
+            
+            <nav>
+                <div class="nav-section">
+                    <div class="nav-section-title">Getting Started</div>
+                    <ul class="nav-list">
+                        <li class="nav-item"><a href="index.html" class="nav-link">Overview</a></li>
+                        <li class="nav-item"><a href="architecture.html" class="nav-link">Architecture</a></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Core Concepts</div>
+                    <ul class="nav-list">
+                        <li class="nav-item"><a href="database-schema.html" class="nav-link">Database Schema</a></li>
+                        <li class="nav-item"><a href="storage-handlers.html" class="nav-link">Storage Handlers</a></li>
+                        <li class="nav-item"><a href="transformers.html" class="nav-link active">Transformers</a></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Reference</div>
+                    <ul class="nav-list">
+                        <li class="nav-item"><a href="api-reference.html" class="nav-link">API Reference</a></li>
+                        <li class="nav-item"><a href="scaling-guide.html" class="nav-link">Scaling Guide</a></li>
+                    </ul>
+                </div>
+            </nav>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <nav class="breadcrumbs">
+                <a href="index.html">Home</a>
+                <span class="breadcrumb-separator">›</span>
+                <a href="architecture.html">Core Concepts</a>
+                <span class="breadcrumb-separator">›</span>
+                <span>Transformers</span>
+            </nav>
+            
+            <div class="page-header">
+                <h1>Transformers</h1>
+                <p class="page-subtitle">
+                    Bidirectional data converters between brackets-manager models and Drizzle database schemas
+                </p>
+            </div>
+            
+            <div class="toc">
+                <div class="toc-title">On This Page</div>
+                <ul class="toc-list">
+                    <li><a href="#overview">Transformer Overview</a></li>
+                    <li><a href="#enum-transformers">Enum Transformers</a></li>
+                    <li><a href="#model-transformers">Model Transformers</a></li>
+                    <li><a href="#field-mapping">Field Name Mapping</a></li>
+                    <li><a href="#extra-fields">Handling Extra Fields</a></li>
+                    <li><a href="#creating">Creating New Transformers</a></li>
+                </ul>
+            </div>
+            
+            <!-- Overview -->
+            <section>
+                <h2 id="overview">Transformer Overview</h2>
+                <p>
+                    Transformers are responsible for converting data between two different type systems:
+                </p>
+                
+                <div class="table-comparison">
+                    <div class="comparison-column">
+                        <div class="comparison-header">📦 brackets-model Types</div>
+                        <ul>
+                            <li>Snake_case field names (<code>stage_id</code>)</li>
+                            <li>Lowercase enum values (<code>'single_elimination'</code>)</li>
+                            <li>Numeric status codes (<code>Status.Completed = 4</code>)</li>
+                            <li>Optional <code>id</code> field on input</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="comparison-column">
+                        <div class="comparison-header">🗄️ Drizzle Schema Types</div>
+                        <ul>
+                            <li>CamelCase field names (<code>stageId</code>)</li>
+                            <li>Uppercase enum values (<code>'SINGLE_ELIMINATION'</code>)</li>
+                            <li>String status values (<code>'COMPLETED'</code>)</li>
+                            <li>Required <code>id</code> (auto-generated)</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <h3>Transformer Interface</h3>
+                <p>All transformers follow the same interface pattern:</p>
+                
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">Transformer Pattern</span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">const</span> Transformer = {
+    <span class="token-comment">/**
+     * Convert FROM brackets-model format TO Drizzle database format
+     * Used during INSERT and UPDATE operations
+     */</span>
+    <span class="token-function">to</span>(input: BracketsModelType): DrizzleType {
+        <span class="token-comment">// Transform field names and enum values</span>
+    },
+    
+    <span class="token-comment">/**
+     * Convert FROM Drizzle database format TO brackets-model format
+     * Used during SELECT operations
+     */</span>
+    <span class="token-function">from</span>(output: DrizzleType): BracketsModelType {
+        <span class="token-comment">// Reverse transformation</span>
+    },
+};</code></pre>
+                </div>
+                
+                <h3>File Structure</h3>
+                <div class="file-tree">
+<span class="file-tree-folder">src/transformers/</span>
+├── <span class="file-tree-file">index.ts</span>                  <span style="color: var(--color-text-muted)"># Re-exports everything</span>
+│
+├── <span class="file-tree-folder">enum/</span>                       <span style="color: var(--color-text-muted)"># Enum value transformers</span>
+│   ├── <span class="file-tree-file">index.ts</span>
+│   ├── <span class="file-tree-file">stage-type.ts</span>         <span style="color: var(--color-text-muted)"># 'single_elimination' ↔ 'SINGLE_ELIMINATION'</span>
+│   ├── <span class="file-tree-file">match-status.ts</span>       <span style="color: var(--color-text-muted)"># Status.Completed ↔ 'COMPLETED'</span>
+│   ├── <span class="file-tree-file">match-result.ts</span>       <span style="color: var(--color-text-muted)"># 'win' ↔ 'WIN'</span>
+│   ├── <span class="file-tree-file">grand-final-type.ts</span>   <span style="color: var(--color-text-muted)"># 'double' ↔ 'DOUBLE'</span>
+│   ├── <span class="file-tree-file">round-robin-mode.ts</span>   <span style="color: var(--color-text-muted)"># 'simple' ↔ 'SIMPLE'</span>
+│   └── <span class="file-tree-file">seed-ordering.ts</span>      <span style="color: var(--color-text-muted)"># 'natural' ↔ 'NATURAL'</span>
+│
+└── <span class="file-tree-folder">model/</span>                      <span style="color: var(--color-text-muted)"># Full entity transformers</span>
+    ├── <span class="file-tree-file">index.ts</span>
+    ├── <span class="file-tree-file">tournament.ts</span>
+    ├── <span class="file-tree-file">participant.ts</span>
+    ├── <span class="file-tree-file">stage.ts</span>
+    ├── <span class="file-tree-file">stage-settings.ts</span>
+    ├── <span class="file-tree-file">group.ts</span>
+    ├── <span class="file-tree-file">round.ts</span>
+    ├── <span class="file-tree-file">match.ts</span>
+    ├── <span class="file-tree-file">match-game.ts</span>
+    └── <span class="file-tree-file">participant-result.ts</span>
+                </div>
+            </section>
+            
+            <!-- Enum Transformers -->
+            <section>
+                <h2 id="enum-transformers">Enum Transformers</h2>
+                <p>
+                    Enum transformers convert between brackets-model enum values and PostgreSQL enum strings.
+                </p>
+                
+                <h3>StageTypeTransformer</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">
+                            <span class="code-block-filename-icon">📄</span>
+                            src/transformers/enum/stage-type.ts
+                        </span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">import</span> { StageType } <span class="token-keyword">from</span> <span class="token-string">'brackets-model'</span>;
+<span class="token-keyword">import type</span> { StageType <span class="token-keyword">as</span> DrizzleStageType } <span class="token-keyword">from</span> <span class="token-string">'../../db/schema/enums'</span>;
+
+<span class="token-keyword">export const</span> StageTypeTransformer = {
+    <span class="token-function">to</span>(type: StageType): DrizzleStageType {
+        <span class="token-keyword">switch</span> (type) {
+            <span class="token-keyword">case</span> <span class="token-string">'round_robin'</span>:
+                <span class="token-keyword">return</span> <span class="token-string">'ROUND_ROBIN'</span>;
+            <span class="token-keyword">case</span> <span class="token-string">'single_elimination'</span>:
+                <span class="token-keyword">return</span> <span class="token-string">'SINGLE_ELIMINATION'</span>;
+            <span class="token-keyword">case</span> <span class="token-string">'double_elimination'</span>:
+                <span class="token-keyword">return</span> <span class="token-string">'DOUBLE_ELIMINATION'</span>;
+        }
+    },
+    <span class="token-function">from</span>(type: DrizzleStageType): StageType {
+        <span class="token-keyword">switch</span> (type) {
+            <span class="token-keyword">case</span> <span class="token-string">'ROUND_ROBIN'</span>:
+                <span class="token-keyword">return</span> <span class="token-string">'round_robin'</span>;
+            <span class="token-keyword">case</span> <span class="token-string">'SINGLE_ELIMINATION'</span>:
+                <span class="token-keyword">return</span> <span class="token-string">'single_elimination'</span>;
+            <span class="token-keyword">case</span> <span class="token-string">'DOUBLE_ELIMINATION'</span>:
+                <span class="token-keyword">return</span> <span class="token-string">'double_elimination'</span>;
+        }
+    },
+};</code></pre>
+                </div>
+                
+                <h3>MatchStatusTransformer</h3>
+                <p>
+                    This transformer handles the special case where brackets-model uses 
+                    numeric enum values (<code>Status.Completed = 4</code>):
+                </p>
+                
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">
+                            <span class="code-block-filename-icon">📄</span>
+                            src/transformers/enum/match-status.ts
+                        </span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">import</span> { Status } <span class="token-keyword">from</span> <span class="token-string">'brackets-model'</span>;
+<span class="token-keyword">import type</span> { MatchStatus <span class="token-keyword">as</span> DrizzleMatchStatus } <span class="token-keyword">from</span> <span class="token-string">'../../db/schema/enums'</span>;
+
+<span class="token-keyword">export const</span> MatchStatusTransformer = {
+    <span class="token-function">to</span>(status: Status): DrizzleMatchStatus {
+        <span class="token-keyword">switch</span> (status) {
+            <span class="token-keyword">case</span> Status.Locked:    <span class="token-keyword">return</span> <span class="token-string">'LOCKED'</span>;    <span class="token-comment">// 0</span>
+            <span class="token-keyword">case</span> Status.Waiting:   <span class="token-keyword">return</span> <span class="token-string">'WAITING'</span>;   <span class="token-comment">// 1</span>
+            <span class="token-keyword">case</span> Status.Ready:     <span class="token-keyword">return</span> <span class="token-string">'READY'</span>;     <span class="token-comment">// 2</span>
+            <span class="token-keyword">case</span> Status.Running:   <span class="token-keyword">return</span> <span class="token-string">'RUNNING'</span>;   <span class="token-comment">// 3</span>
+            <span class="token-keyword">case</span> Status.Completed: <span class="token-keyword">return</span> <span class="token-string">'COMPLETED'</span>; <span class="token-comment">// 4</span>
+            <span class="token-keyword">case</span> Status.Archived:  <span class="token-keyword">return</span> <span class="token-string">'ARCHIVED'</span>;  <span class="token-comment">// 5</span>
+        }
+    },
+    <span class="token-function">from</span>(status: DrizzleMatchStatus): Status {
+        <span class="token-keyword">switch</span> (status) {
+            <span class="token-keyword">case</span> <span class="token-string">'LOCKED'</span>:    <span class="token-keyword">return</span> Status.Locked;
+            <span class="token-keyword">case</span> <span class="token-string">'WAITING'</span>:   <span class="token-keyword">return</span> Status.Waiting;
+            <span class="token-keyword">case</span> <span class="token-string">'READY'</span>:     <span class="token-keyword">return</span> Status.Ready;
+            <span class="token-keyword">case</span> <span class="token-string">'RUNNING'</span>:   <span class="token-keyword">return</span> Status.Running;
+            <span class="token-keyword">case</span> <span class="token-string">'COMPLETED'</span>: <span class="token-keyword">return</span> Status.Completed;
+            <span class="token-keyword">case</span> <span class="token-string">'ARCHIVED'</span>:  <span class="token-keyword">return</span> Status.Archived;
+        }
+    },
+};</code></pre>
+                </div>
+                
+                <h3>Enum Mapping Reference</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Transformer</th>
+                            <th>brackets-model</th>
+                            <th>Drizzle/PostgreSQL</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>StageTypeTransformer</code></td>
+                            <td><code>'round_robin'</code></td>
+                            <td><code>'ROUND_ROBIN'</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>MatchStatusTransformer</code></td>
+                            <td><code>Status.Completed</code> (4)</td>
+                            <td><code>'COMPLETED'</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>MatchResultTransformer</code></td>
+                            <td><code>'win'</code></td>
+                            <td><code>'WIN'</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>GrandFinalTypeTransformer</code></td>
+                            <td><code>'double'</code></td>
+                            <td><code>'DOUBLE'</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>RoundRobinModeTransformer</code></td>
+                            <td><code>'simple'</code></td>
+                            <td><code>'SIMPLE'</code></td>
+                        </tr>
+                        <tr>
+                            <td><code>SeedOrderingTransformer</code></td>
+                            <td><code>'inner_outer'</code></td>
+                            <td><code>'INNER_OUTER'</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+            
+            <!-- Model Transformers -->
+            <section>
+                <h2 id="model-transformers">Model Transformers</h2>
+                <p>
+                    Model transformers convert full entity objects, handling field name mapping 
+                    and delegating to enum transformers for nested enum fields.
+                </p>
+                
+                <h3>StageTransformer</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">
+                            <span class="code-block-filename-icon">📄</span>
+                            src/transformers/model/stage.ts
+                        </span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">import</span> { Stage, StageType } <span class="token-keyword">from</span> <span class="token-string">'brackets-model'</span>;
+<span class="token-keyword">import</span> { StageSettingsTransformer, StageTypeTransformer } <span class="token-keyword">from</span> <span class="token-string">'..'</span>;
+<span class="token-keyword">import type</span> {
+    Stage <span class="token-keyword">as</span> DrizzleStage,
+    StageSettings <span class="token-keyword">as</span> DrizzleStageSettings,
+} <span class="token-keyword">from</span> <span class="token-string">'../../db/schema'</span>;
+
+<span class="token-keyword">type</span> DrizzleStageWithSettings = DrizzleStage & {
+    settings: DrizzleStageSettings | <span class="token-keyword">null</span>;
+};
+
+<span class="token-keyword">export const</span> StageTransformer = {
+    <span class="token-function">to</span>(input: Omit&lt;Stage, <span class="token-string">'id'</span> | <span class="token-string">'settings'</span>&gt;) {
+        <span class="token-keyword">return</span> {
+            <span class="token-comment">// Field name mapping</span>
+            name: input.name,
+            tournamentId: input.tournament_id <span class="token-keyword">as</span> <span class="token-type">number</span>,  <span class="token-comment">// snake → camel</span>
+            number: input.number,
+            <span class="token-comment">// Enum transformation</span>
+            type: StageTypeTransformer.<span class="token-function">to</span>(input.type),
+        };
+    },
+    <span class="token-function">from</span>(output: DrizzleStageWithSettings): Stage {
+        <span class="token-keyword">return</span> {
+            id: output.id,
+            name: output.name,
+            tournament_id: output.tournamentId,  <span class="token-comment">// camel → snake</span>
+            number: output.number,
+            type: StageTypeTransformer.<span class="token-function">from</span>(output.type),
+            <span class="token-comment">// Nested transformer for settings</span>
+            settings: output.settings
+                ? StageSettingsTransformer.<span class="token-function">from</span>(output.settings)
+                : {},
+        };
+    },
+};</code></pre>
+                </div>
+                
+                <h3>MatchTransformer (Complex)</h3>
+                <p>
+                    The Match transformer is more complex because it handles:
+                </p>
+                <ul>
+                    <li>Field name mapping</li>
+                    <li>Enum transformation for status</li>
+                    <li>Nested opponent result transformation</li>
+                    <li>JSON extra field merging</li>
+                </ul>
+                
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">
+                            <span class="code-block-filename-icon">📄</span>
+                            src/transformers/model/match.ts
+                        </span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">export const</span> MatchTransformer = {
+    <span class="token-function">to</span>(input: Omit&lt;MatchWithExtra, <span class="token-string">'id'</span> | <span class="token-string">'opponent1'</span> | <span class="token-string">'opponent2'</span>&gt;) {
+        <span class="token-keyword">const</span> extra = <span class="token-function">matchExtraFromInput</span>(input);
+
+        <span class="token-keyword">return</span> {
+            <span class="token-comment">// Enum transformation</span>
+            status: MatchStatusTransformer.<span class="token-function">to</span>(input.status),
+            <span class="token-comment">// Field name mapping (snake_case → camelCase)</span>
+            stageId: input.stage_id <span class="token-keyword">as</span> <span class="token-type">number</span>,
+            groupId: input.group_id <span class="token-keyword">as</span> <span class="token-type">number</span>,
+            roundId: input.round_id <span class="token-keyword">as</span> <span class="token-type">number</span>,
+            number: input.number,
+            childCount: input.child_count,
+            <span class="token-comment">// JSON field</span>
+            extra: extra ?? <span class="token-keyword">null</span>,
+        };
+    },
+    <span class="token-function">from</span>(output: DrizzleMatchWithRelations): MatchWithExtra {
+        <span class="token-keyword">const</span> normalizedExtras = <span class="token-function">normalizeMatchExtras</span>(output.extra);
+
+        <span class="token-keyword">return</span> {
+            id: output.id,
+            <span class="token-comment">// Reverse enum transformation</span>
+            status: MatchStatusTransformer.<span class="token-function">from</span>(output.status),
+            <span class="token-comment">// Field name mapping (camelCase → snake_case)</span>
+            stage_id: output.stageId,
+            group_id: output.groupId,
+            round_id: output.roundId,
+            number: output.number,
+            child_count: output.childCount,
+            <span class="token-comment">// Spread normalized extras to top level</span>
+            ...normalizedExtras,
+            extra: output.extra ?? <span class="token-keyword">undefined</span>,
+            <span class="token-comment">// Nested opponent transformation</span>
+            opponent1: output.opponent1Result
+                ? ParticipantMatchResultTransformer.<span class="token-function">from</span>(output.opponent1Result)
+                : <span class="token-keyword">null</span>,
+            opponent2: output.opponent2Result
+                ? ParticipantMatchResultTransformer.<span class="token-function">from</span>(output.opponent2Result)
+                : <span class="token-keyword">null</span>,
+        };
+    },
+};</code></pre>
+                </div>
+            </section>
+            
+            <!-- Field Mapping -->
+            <section>
+                <h2 id="field-mapping">Field Name Mapping</h2>
+                <p>
+                    Field names differ between brackets-model (snake_case) and Drizzle schema (camelCase).
+                    This is handled explicitly in each transformer.
+                </p>
+                
+                <table>
+                    <thead>
+                        <tr>
+                            <th>brackets-model</th>
+                            <th>Drizzle Schema</th>
+                            <th>Entity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>start_date</code></td>
+                            <td><code>startDate</code></td>
+                            <td>Tournament</td>
+                        </tr>
+                        <tr>
+                            <td><code>end_date</code></td>
+                            <td><code>endDate</code></td>
+                            <td>Tournament</td>
+                        </tr>
+                        <tr>
+                            <td><code>tournament_id</code></td>
+                            <td><code>tournamentId</code></td>
+                            <td>Stage, Participant</td>
+                        </tr>
+                        <tr>
+                            <td><code>stage_id</code></td>
+                            <td><code>stageId</code></td>
+                            <td>Group, Round, Match, MatchGame</td>
+                        </tr>
+                        <tr>
+                            <td><code>group_id</code></td>
+                            <td><code>groupId</code></td>
+                            <td>Round, Match</td>
+                        </tr>
+                        <tr>
+                            <td><code>round_id</code></td>
+                            <td><code>roundId</code></td>
+                            <td>Match</td>
+                        </tr>
+                        <tr>
+                            <td><code>child_count</code></td>
+                            <td><code>childCount</code></td>
+                            <td>Match</td>
+                        </tr>
+                        <tr>
+                            <td><code>match_id</code></td>
+                            <td><code>matchId</code></td>
+                            <td>MatchGame</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+            
+            <!-- Extra Fields -->
+            <section>
+                <h2 id="extra-fields">Handling Extra Fields</h2>
+                <p>
+                    The <code>extra</code> JSON field allows storing custom data on matches, 
+                    match games, and participants. The transformer handles merging logic carefully.
+                </p>
+                
+                <h3>Extra Field Merging Logic</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">Extra Field Processing</span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-comment">/**
+ * Extracts custom fields from input that aren't standard match fields.
+ * These become part of the 'extra' JSON column.
+ */</span>
+<span class="token-keyword">function</span> <span class="token-function">getMatchExtras</span>(input: MatchExtrasInput): JsonObject {
+    <span class="token-keyword">const</span> clone = { ...input };
+
+    <span class="token-comment">// Remove all known/standard fields</span>
+    <span class="token-keyword">delete</span> clone.id;
+    <span class="token-keyword">delete</span> clone.status;
+    <span class="token-keyword">delete</span> clone.stage_id;
+    <span class="token-keyword">delete</span> clone.group_id;
+    <span class="token-keyword">delete</span> clone.round_id;
+    <span class="token-keyword">delete</span> clone.number;
+    <span class="token-keyword">delete</span> clone.child_count;
+    <span class="token-keyword">delete</span> clone.opponent1;
+    <span class="token-keyword">delete</span> clone.opponent2;
+    <span class="token-keyword">delete</span> clone.extra;
+
+    <span class="token-comment">// Remaining fields are custom extras</span>
+    <span class="token-keyword">return</span> Object.<span class="token-function">entries</span>(clone)
+        .<span class="token-function">reduce</span>((extras, [key, value]) => {
+            <span class="token-keyword">if</span> (value !== <span class="token-keyword">undefined</span>) {
+                extras[key] = value;
+            }
+            <span class="token-keyword">return</span> extras;
+        }, {});
+}
+
+<span class="token-comment">/**
+ * Determines the final 'extra' value considering:
+ * 1. Custom fields passed at the top level
+ * 2. Explicit 'extra' property
+ * 3. Previous 'extra' value (for merging on update)
+ */</span>
+<span class="token-keyword">export function</span> <span class="token-function">matchExtraFromInput</span>(
+    input: MatchExtrasInput,
+    previousExtra?: JsonValue | <span class="token-keyword">null</span>,
+): JsonValue | <span class="token-keyword">null</span> | <span class="token-keyword">undefined</span> {
+    <span class="token-keyword">const</span> customFields = <span class="token-function">getMatchExtras</span>(input);
+    <span class="token-keyword">const</span> hasCustomFields = Object.<span class="token-function">keys</span>(customFields).length > <span class="token-number">0</span>;
+
+    <span class="token-comment">// If input explicitly sets 'extra'</span>
+    <span class="token-keyword">if</span> (<span class="token-function">hasOwnExtraProperty</span>(input)) {
+        <span class="token-keyword">const</span> providedExtra = input.extra;
+
+        <span class="token-keyword">if</span> (providedExtra === <span class="token-keyword">undefined</span>) {
+            <span class="token-keyword">return</span> hasCustomFields ? customFields : <span class="token-keyword">undefined</span>;
+        }
+
+        <span class="token-keyword">if</span> (<span class="token-function">isRecord</span>(providedExtra)) {
+            <span class="token-comment">// Merge custom fields with provided extra</span>
+            <span class="token-keyword">return</span> hasCustomFields
+                ? { ...providedExtra, ...customFields }
+                : providedExtra;
+        }
+
+        <span class="token-keyword">return</span> providedExtra ?? <span class="token-keyword">null</span>;
+    }
+
+    <span class="token-comment">// No explicit extra - merge custom fields with previous</span>
+    <span class="token-keyword">if</span> (!hasCustomFields) {
+        <span class="token-keyword">return</span> <span class="token-keyword">undefined</span>; <span class="token-comment">// Don't modify</span>
+    }
+
+    <span class="token-keyword">if</span> (<span class="token-function">isRecord</span>(previousExtra)) {
+        <span class="token-keyword">return</span> { ...previousExtra, ...customFields };
+    }
+
+    <span class="token-keyword">return</span> customFields;
+}</code></pre>
+                </div>
+                
+                <h3>Usage Example</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">Storing Custom Match Data</span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-comment">// Both of these work equivalently:</span>
+
+<span class="token-comment">// Option 1: Explicit extra property</span>
+<span class="token-keyword">await</span> manager.update.<span class="token-function">match</span>({
+    id: matchId,
+    extra: {
+        scheduledTime: <span class="token-string">'2024-03-15T14:00:00Z'</span>,
+        venue: <span class="token-string">'Main Stage'</span>,
+        streamUrl: <span class="token-string">'https://twitch.tv/...'</span>,
+    },
+});
+
+<span class="token-comment">// Option 2: Custom fields at top level (auto-collected)</span>
+<span class="token-keyword">await</span> manager.update.<span class="token-function">match</span>({
+    id: matchId,
+    scheduledTime: <span class="token-string">'2024-03-15T14:00:00Z'</span>,
+    venue: <span class="token-string">'Main Stage'</span>,
+    streamUrl: <span class="token-string">'https://twitch.tv/...'</span>,
+});
+
+<span class="token-comment">// Both result in extra: { scheduledTime, venue, streamUrl }</span></code></pre>
+                </div>
+            </section>
+            
+            <!-- Creating Transformers -->
+            <section>
+                <h2 id="creating">Creating New Transformers</h2>
+                <p>Follow this pattern when creating transformers for new entities:</p>
+                
+                <h3>Step 1: Enum Transformer (if needed)</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">New Enum Transformer Template</span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">import type</span> { MyEnum <span class="token-keyword">as</span> DrizzleMyEnum } <span class="token-keyword">from</span> <span class="token-string">'../../db/schema/enums'</span>;
+
+<span class="token-keyword">type</span> BracketsMyEnum = <span class="token-string">'value_one'</span> | <span class="token-string">'value_two'</span>;
+
+<span class="token-keyword">export const</span> MyEnumTransformer = {
+    <span class="token-function">to</span>(value: BracketsMyEnum): DrizzleMyEnum {
+        <span class="token-keyword">switch</span> (value) {
+            <span class="token-keyword">case</span> <span class="token-string">'value_one'</span>: <span class="token-keyword">return</span> <span class="token-string">'VALUE_ONE'</span>;
+            <span class="token-keyword">case</span> <span class="token-string">'value_two'</span>: <span class="token-keyword">return</span> <span class="token-string">'VALUE_TWO'</span>;
+        }
+    },
+    <span class="token-function">from</span>(value: DrizzleMyEnum): BracketsMyEnum {
+        <span class="token-keyword">switch</span> (value) {
+            <span class="token-keyword">case</span> <span class="token-string">'VALUE_ONE'</span>: <span class="token-keyword">return</span> <span class="token-string">'value_one'</span>;
+            <span class="token-keyword">case</span> <span class="token-string">'VALUE_TWO'</span>: <span class="token-keyword">return</span> <span class="token-string">'value_two'</span>;
+        }
+    },
+};</code></pre>
+                </div>
+                
+                <h3>Step 2: Model Transformer</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">New Model Transformer Template</span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">import</span> { MyModel } <span class="token-keyword">from</span> <span class="token-string">'brackets-model'</span>;
+<span class="token-keyword">import</span> { OmitId } <span class="token-keyword">from</span> <span class="token-string">'brackets-manager'</span>;
+<span class="token-keyword">import</span> { MyEnumTransformer } <span class="token-keyword">from</span> <span class="token-string">'..'</span>;
+<span class="token-keyword">import type</span> { MyEntity <span class="token-keyword">as</span> DrizzleMyEntity } <span class="token-keyword">from</span> <span class="token-string">'../../db/schema'</span>;
+
+<span class="token-keyword">export const</span> MyModelTransformer = {
+    <span class="token-function">to</span>(input: OmitId&lt;MyModel&gt;) {
+        <span class="token-keyword">return</span> {
+            <span class="token-comment">// Map snake_case → camelCase</span>
+            someField: input.some_field,
+            anotherField: input.another_field <span class="token-keyword">as</span> <span class="token-type">number</span>,
+            <span class="token-comment">// Transform enums</span>
+            myEnum: MyEnumTransformer.<span class="token-function">to</span>(input.my_enum),
+            <span class="token-comment">// Handle optional fields</span>
+            optionalField: input.optional_field ?? <span class="token-keyword">null</span>,
+        };
+    },
+    <span class="token-function">from</span>(output: DrizzleMyEntity): MyModel {
+        <span class="token-keyword">return</span> {
+            id: output.id,
+            <span class="token-comment">// Map camelCase → snake_case</span>
+            some_field: output.someField,
+            another_field: output.anotherField,
+            <span class="token-comment">// Reverse transform enums</span>
+            my_enum: MyEnumTransformer.<span class="token-function">from</span>(output.myEnum),
+            <span class="token-comment">// Handle nulls → undefined for optional fields</span>
+            optional_field: output.optionalField ?? <span class="token-keyword">undefined</span>,
+        };
+    },
+};</code></pre>
+                </div>
+                
+                <h3>Step 3: Export</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">Add to index exports</span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-comment">// src/transformers/model/index.ts</span>
+<span class="token-keyword">export</span> * <span class="token-keyword">from</span> <span class="token-string">'./my-model'</span>;
+
+<span class="token-comment">// src/transformers/enum/index.ts (if new enum)</span>
+<span class="token-keyword">export</span> * <span class="token-keyword">from</span> <span class="token-string">'./my-enum'</span>;</code></pre>
+                </div>
+            </section>
+            
+            <!-- Navigation Footer -->
+            <footer class="doc-footer">
+                <div class="footer-nav">
+                    <span class="footer-nav-label">Previous</span>
+                    <a href="storage-handlers.html" class="footer-nav-link">← Storage Handlers</a>
+                </div>
+                <div class="footer-nav">
+                    <span class="footer-nav-label">Next</span>
+                    <a href="api-reference.html" class="footer-nav-link">API Reference →</a>
+                </div>
+            </footer>
+        </main>
+    </div>
+    
+    <script>
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+    </script>
+</body>
+</html>
+

@@ -1,0 +1,1108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database Schema - Brackets Drizzle DB</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/schema-diagrams.css">
+    <link rel="stylesheet" href="css/code-examples.css">
+</head>
+<body>
+    <button class="mobile-menu-toggle" onclick="toggleSidebar()">☰ Menu</button>
+    
+    <div class="page-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">Brackets Drizzle DB</div>
+                <div class="sidebar-version">v2.1.0</div>
+            </div>
+            
+            <nav>
+                <div class="nav-section">
+                    <div class="nav-section-title">Getting Started</div>
+                    <ul class="nav-list">
+                        <li class="nav-item"><a href="index.html" class="nav-link">Overview</a></li>
+                        <li class="nav-item"><a href="architecture.html" class="nav-link">Architecture</a></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Core Concepts</div>
+                    <ul class="nav-list">
+                        <li class="nav-item"><a href="database-schema.html" class="nav-link active">Database Schema</a></li>
+                        <li class="nav-item"><a href="storage-handlers.html" class="nav-link">Storage Handlers</a></li>
+                        <li class="nav-item"><a href="transformers.html" class="nav-link">Transformers</a></li>
+                    </ul>
+                </div>
+                
+                <div class="nav-section">
+                    <div class="nav-section-title">Reference</div>
+                    <ul class="nav-list">
+                        <li class="nav-item"><a href="api-reference.html" class="nav-link">API Reference</a></li>
+                        <li class="nav-item"><a href="scaling-guide.html" class="nav-link">Scaling Guide</a></li>
+                    </ul>
+                </div>
+            </nav>
+        </aside>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <nav class="breadcrumbs">
+                <a href="index.html">Home</a>
+                <span class="breadcrumb-separator">›</span>
+                <a href="architecture.html">Core Concepts</a>
+                <span class="breadcrumb-separator">›</span>
+                <span>Database Schema</span>
+            </nav>
+            
+            <div class="page-header">
+                <h1>Database Schema</h1>
+                <p class="page-subtitle">
+                    Complete reference for all PostgreSQL tables, enums, and relationships defined with Drizzle ORM
+                </p>
+            </div>
+            
+                <div class="toc">
+                <div class="toc-title">On This Page</div>
+                <ul class="toc-list">
+                    <li><a href="#overview">Schema Overview</a></li>
+                    <li><a href="#enums">PostgreSQL Enums</a></li>
+                    <li><a href="#tournament">Tournament Table</a></li>
+                    <li><a href="#participant">Participant Table</a></li>
+                    <li><a href="#stage">Stage & StageSettings Tables</a></li>
+                    <li><a href="#group">Group Table</a></li>
+                    <li><a href="#round">Round Table</a></li>
+                    <li><a href="#match">Match & ParticipantMatchResult Tables</a></li>
+                    <li><a href="#match-game">MatchGame & ParticipantMatchGameResult Tables</a></li>
+                    <li><a href="#relationships">Relationship Diagram</a></li>
+                </ul>
+            </div>
+            
+            <!-- Schema Overview -->
+            <section>
+                <h2 id="overview">Schema Overview</h2>
+                <p>
+                    The database schema consists of <strong>9 tables</strong> and <strong>6 enums</strong> 
+                    that model tournament bracket structures. The design follows a hierarchical pattern:
+                </p>
+                
+                <div class="diagram">
+                    <div class="diagram-title">Entity Hierarchy</div>
+                    <div class="flow-container">
+                        <div class="flow-row">
+                            <div class="flow-box flow-box-primary" style="min-width: 200px;">
+                                <strong>Tournament</strong><br>
+                                <small>Container entity</small>
+                            </div>
+                        </div>
+                        <div class="flow-arrow flow-arrow-down"></div>
+                        <div class="flow-row">
+                            <div class="flow-box flow-box-secondary" style="min-width: 200px;">
+                                <strong>Stage</strong><br>
+                                <small>+ StageSettings</small>
+                            </div>
+                            <div class="flow-box" style="min-width: 200px;">
+                                <strong>Participant</strong><br>
+                                <small>Teams/Individuals</small>
+                            </div>
+                        </div>
+                        <div class="flow-arrow flow-arrow-down"></div>
+                        <div class="flow-row">
+                            <div class="flow-box" style="min-width: 200px;">
+                                <strong>Group</strong><br>
+                                <small>Bracket divisions</small>
+                            </div>
+                        </div>
+                        <div class="flow-arrow flow-arrow-down"></div>
+                        <div class="flow-row">
+                            <div class="flow-box" style="min-width: 200px;">
+                                <strong>Round</strong><br>
+                                <small>e.g., Semi-finals</small>
+                            </div>
+                        </div>
+                        <div class="flow-arrow flow-arrow-down"></div>
+                        <div class="flow-row">
+                            <div class="flow-box flow-box-tertiary" style="min-width: 200px;">
+                                <strong>Match</strong><br>
+                                <small>+ ParticipantMatchResult (×2)</small>
+                            </div>
+                        </div>
+                        <div class="flow-arrow flow-arrow-down"></div>
+                        <div class="flow-row">
+                            <div class="flow-box" style="min-width: 200px;">
+                                <strong>MatchGame</strong><br>
+                                <small>+ ParticipantMatchGameResult (×2)</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="schema-legend">
+                    <div class="legend-item">
+                        <div class="legend-symbol erd-key-pk">PK</div>
+                        <span>Primary Key</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-symbol erd-key-fk">FK</div>
+                        <span>Foreign Key</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="constraint constraint-unique">UNIQUE</span>
+                        <span>Unique Constraint</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="constraint constraint-not-null">NOT NULL</span>
+                        <span>Required Field</span>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Enums -->
+            <section>
+                <h2 id="enums">PostgreSQL Enums</h2>
+                <p>
+                    The schema uses PostgreSQL native enums for type safety. These are defined in 
+                    <code>src/db/schema/enums.ts</code>:
+                </p>
+                
+                <div class="enum-container">
+                    <div class="enum-header">
+                        <span class="enum-name">StageType</span>
+                        <span class="badge badge-primary">Stage Classification</span>
+                    </div>
+                    <div class="enum-values">
+                        <span class="enum-value">ROUND_ROBIN</span>
+                        <span class="enum-value">SINGLE_ELIMINATION</span>
+                        <span class="enum-value">DOUBLE_ELIMINATION</span>
+                    </div>
+                    <p style="margin-top: var(--space-sm); font-size: 0.875rem; color: var(--color-text-muted);">
+                        Determines the tournament format and bracket structure.
+                    </p>
+                </div>
+                
+                <div class="enum-container">
+                    <div class="enum-header">
+                        <span class="enum-name">GrandFinalType</span>
+                        <span class="badge badge-secondary">Double Elimination Only</span>
+                    </div>
+                    <div class="enum-values">
+                        <span class="enum-value">NONE</span>
+                        <span class="enum-value">SIMPLE</span>
+                        <span class="enum-value">DOUBLE</span>
+                    </div>
+                    <p style="margin-top: var(--space-sm); font-size: 0.875rem; color: var(--color-text-muted);">
+                        NONE = no grand final, SIMPLE = single match, DOUBLE = bracket reset possible.
+                    </p>
+                </div>
+                
+                <div class="enum-container">
+                    <div class="enum-header">
+                        <span class="enum-name">RoundRobinMode</span>
+                        <span class="badge badge-secondary">Round Robin Only</span>
+                    </div>
+                    <div class="enum-values">
+                        <span class="enum-value">SIMPLE</span>
+                        <span class="enum-value">DOUBLE</span>
+                    </div>
+                    <p style="margin-top: var(--space-sm); font-size: 0.875rem; color: var(--color-text-muted);">
+                        SIMPLE = everyone plays once, DOUBLE = home and away matches.
+                    </p>
+                </div>
+                
+                <div class="enum-container">
+                    <div class="enum-header">
+                        <span class="enum-name">SeedOrdering</span>
+                        <span class="badge badge-success">Seeding Algorithm</span>
+                    </div>
+                    <div class="enum-values">
+                        <span class="enum-value">NATURAL</span>
+                        <span class="enum-value">REVERSE</span>
+                        <span class="enum-value">HALF_SHIFT</span>
+                        <span class="enum-value">REVERSE_HALF_SHIFT</span>
+                        <span class="enum-value">PAIR_FLIP</span>
+                        <span class="enum-value">INNER_OUTER</span>
+                        <span class="enum-value">GROUPS_EFFORT_BALANCED</span>
+                        <span class="enum-value">GROUPS_SEED_OPTIMIZED</span>
+                        <span class="enum-value">GROUPS_BRACKET_OPTIMIZED</span>
+                    </div>
+                    <p style="margin-top: var(--space-sm); font-size: 0.875rem; color: var(--color-text-muted);">
+                        Determines how seeds are distributed across the bracket.
+                    </p>
+                </div>
+                
+                <div class="enum-container">
+                    <div class="enum-header">
+                        <span class="enum-name">MatchStatus</span>
+                        <span class="badge badge-primary">Match Lifecycle</span>
+                    </div>
+                    <div class="enum-values">
+                        <span class="enum-value">LOCKED</span>
+                        <span class="enum-value">WAITING</span>
+                        <span class="enum-value">READY</span>
+                        <span class="enum-value">RUNNING</span>
+                        <span class="enum-value">COMPLETED</span>
+                        <span class="enum-value">ARCHIVED</span>
+                    </div>
+                    <p style="margin-top: var(--space-sm); font-size: 0.875rem; color: var(--color-text-muted);">
+                        Tracks match progress: LOCKED (no participants yet) → WAITING → READY → RUNNING → COMPLETED → ARCHIVED
+                    </p>
+                </div>
+                
+                <div class="enum-container">
+                    <div class="enum-header">
+                        <span class="enum-name">MatchResult</span>
+                        <span class="badge badge-warning">Outcome</span>
+                    </div>
+                    <div class="enum-values">
+                        <span class="enum-value">WIN</span>
+                        <span class="enum-value">DRAW</span>
+                        <span class="enum-value">LOSS</span>
+                    </div>
+                    <p style="margin-top: var(--space-sm); font-size: 0.875rem; color: var(--color-text-muted);">
+                        Result of a match for a specific participant.
+                    </p>
+                </div>
+                
+                <h3>Drizzle Enum Definition</h3>
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">
+                            <span class="code-block-filename-icon">📄</span>
+                            src/db/schema/enums.ts
+                        </span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">import</span> { pgEnum } <span class="token-keyword">from</span> <span class="token-string">'drizzle-orm/pg-core'</span>;
+
+<span class="token-comment">// Define PostgreSQL enum</span>
+<span class="token-keyword">export const</span> stageTypeEnum = <span class="token-function">pgEnum</span>(<span class="token-string">'StageType'</span>, [
+    <span class="token-string">'ROUND_ROBIN'</span>,
+    <span class="token-string">'SINGLE_ELIMINATION'</span>,
+    <span class="token-string">'DOUBLE_ELIMINATION'</span>,
+]);
+
+<span class="token-comment">// Extract TypeScript type from enum</span>
+<span class="token-keyword">export type</span> <span class="token-type">StageType</span> = (<span class="token-keyword">typeof</span> stageTypeEnum.enumValues)[<span class="token-type">number</span>];
+<span class="token-comment">// Results in: 'ROUND_ROBIN' | 'SINGLE_ELIMINATION' | 'DOUBLE_ELIMINATION'</span></code></pre>
+                </div>
+            </section>
+            
+            <!-- Tournament Table -->
+            <section>
+                <h2 id="tournament">Tournament Table</h2>
+                <p>
+                    The top-level container entity that holds stages and participants. 
+                    All stages and participants belong to a tournament.
+                </p>
+                
+                <div class="erd-container">
+                    <div class="erd-table" style="max-width: 400px;">
+                        <div class="erd-table-header">
+                            <span class="erd-table-icon">🏆</span>
+                            Tournament
+                        </div>
+                        <div class="erd-table-body">
+                            <div class="erd-column erd-column-required">
+                                <span class="erd-key erd-key-pk">PK</span>
+                                <span class="erd-column-name">id</span>
+                                <span class="erd-column-type">serial</span>
+                            </div>
+                            <div class="erd-column erd-column-required">
+                                <span class="erd-column-name">name</span>
+                                <span class="erd-column-type">text</span>
+                            </div>
+                            <div class="erd-column">
+                                <span class="erd-column-name">description</span>
+                                <span class="erd-column-type">text</span>
+                            </div>
+                            <div class="erd-column">
+                                <span class="erd-column-name">startDate</span>
+                                <span class="erd-column-type">timestamp</span>
+                            </div>
+                            <div class="erd-column">
+                                <span class="erd-column-name">endDate</span>
+                                <span class="erd-column-type">timestamp</span>
+                            </div>
+                            <div class="erd-column">
+                                <span class="erd-column-name">extra</span>
+                                <span class="erd-column-type">jsonb</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <h3>Column Details</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Column</th>
+                            <th>Type</th>
+                            <th>Constraints</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>id</code></td>
+                            <td>serial</td>
+                            <td><span class="constraint constraint-pk">PK</span></td>
+                            <td>Auto-incrementing primary key</td>
+                        </tr>
+                        <tr>
+                            <td><code>name</code></td>
+                            <td>text</td>
+                            <td><span class="constraint constraint-not-null">NOT NULL</span></td>
+                            <td>Name of the tournament</td>
+                        </tr>
+                        <tr>
+                            <td><code>description</code></td>
+                            <td>text</td>
+                            <td>—</td>
+                            <td>Optional description of the tournament</td>
+                        </tr>
+                        <tr>
+                            <td><code>startDate</code></td>
+                            <td>timestamp</td>
+                            <td>—</td>
+                            <td>When the tournament starts</td>
+                        </tr>
+                        <tr>
+                            <td><code>endDate</code></td>
+                            <td>timestamp</td>
+                            <td>—</td>
+                            <td>When the tournament ends</td>
+                        </tr>
+                        <tr>
+                            <td><code>extra</code></td>
+                            <td>jsonb</td>
+                            <td>—</td>
+                            <td>Custom JSON data (logos, rules, etc.)</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">
+                            <span class="code-block-filename-icon">📄</span>
+                            src/db/schema/tournament.ts
+                        </span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">export const</span> tournament = <span class="token-function">pgTable</span>(<span class="token-string">'Tournament'</span>, {
+    id: <span class="token-function">serial</span>(<span class="token-string">'id'</span>).<span class="token-function">primaryKey</span>(),
+    name: <span class="token-function">text</span>(<span class="token-string">'name'</span>).<span class="token-function">notNull</span>(),
+    description: <span class="token-function">text</span>(<span class="token-string">'description'</span>),
+    startDate: <span class="token-function">timestamp</span>(<span class="token-string">'startDate'</span>),
+    endDate: <span class="token-function">timestamp</span>(<span class="token-string">'endDate'</span>),
+    extra: <span class="token-function">jsonb</span>(<span class="token-string">'extra'</span>),
+});
+
+<span class="token-keyword">export const</span> tournamentRelations = <span class="token-function">relations</span>(tournament, ({ many }) => ({
+    stages: <span class="token-function">many</span>(stage),
+    participants: <span class="token-function">many</span>(participant),
+}));</code></pre>
+                </div>
+            </section>
+            
+            <!-- Participant Table -->
+            <section>
+                <h2 id="participant">Participant Table</h2>
+                <p>
+                    Stores teams or individuals competing in tournaments.
+                </p>
+                
+                <div class="erd-container">
+                    <div class="erd-table" style="max-width: 400px;">
+                        <div class="erd-table-header">
+                            <span class="erd-table-icon">👥</span>
+                            Participant
+                        </div>
+                        <div class="erd-table-body">
+                            <div class="erd-column erd-column-required">
+                                <span class="erd-key erd-key-pk">PK</span>
+                                <span class="erd-column-name">id</span>
+                                <span class="erd-column-type">serial</span>
+                            </div>
+                            <div class="erd-column erd-column-required">
+                                <span class="erd-key erd-key-fk">FK</span>
+                                <span class="erd-column-name">tournamentId</span>
+                                <span class="erd-column-type">integer → Tournament</span>
+                            </div>
+                            <div class="erd-column erd-column-required">
+                                <span class="erd-column-name">name</span>
+                                <span class="erd-column-type">text</span>
+                            </div>
+                            <div class="erd-column">
+                                <span class="erd-column-name">extra</span>
+                                <span class="erd-column-type">jsonb</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <h3>Column Details</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Column</th>
+                            <th>Type</th>
+                            <th>Constraints</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>id</code></td>
+                            <td>serial</td>
+                            <td><span class="constraint constraint-pk">PK</span></td>
+                            <td>Auto-incrementing primary key</td>
+                        </tr>
+                        <tr>
+                            <td><code>tournamentId</code></td>
+                            <td>integer</td>
+                            <td><span class="constraint constraint-not-null">NOT NULL</span> <span class="constraint constraint-fk">FK</span></td>
+                            <td>Reference to the parent Tournament</td>
+                        </tr>
+                        <tr>
+                            <td><code>name</code></td>
+                            <td>text</td>
+                            <td><span class="constraint constraint-not-null">NOT NULL</span></td>
+                            <td>Display name of the participant</td>
+                        </tr>
+                        <tr>
+                            <td><code>extra</code></td>
+                            <td>jsonb</td>
+                            <td>—</td>
+                            <td>Custom JSON data (logos, stats, etc.)</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div class="code-block">
+                    <div class="code-block-header">
+                        <span class="code-block-filename">
+                            <span class="code-block-filename-icon">📄</span>
+                            src/db/schema/participant.ts
+                        </span>
+                        <span class="code-block-language">typescript</span>
+                    </div>
+                    <pre><code><span class="token-keyword">export const</span> participant = <span class="token-function">pgTable</span>(<span class="token-string">'Participant'</span>, {
+    id: <span class="token-function">serial</span>(<span class="token-string">'id'</span>).<span class="token-function">primaryKey</span>(),
+    tournamentId: <span class="token-function">integer</span>(<span class="token-string">'tournamentId'</span>)
+        .<span class="token-function">notNull</span>()
+        .<span class="token-function">references</span>(() => tournament.id),
+    name: <span class="token-function">text</span>(<span class="token-string">'name'</span>).<span class="token-function">notNull</span>(),
+    extra: <span class="token-function">jsonb</span>(<span class="token-string">'extra'</span>),
+});
+
+<span class="token-keyword">export const</span> participantRelations = <span class="token-function">relations</span>(participant, ({ one, many }) => ({
+    tournament: <span class="token-function">one</span>(tournament, {
+        fields: [participant.tournamentId],
+        references: [tournament.id],
+    }),
+    matchResults: <span class="token-function">many</span>(participantMatchResult),
+    matchGameResults: <span class="token-function">many</span>(participantMatchGameResult),
+}));</code></pre>
+                </div>
+            </section>
+            
+            <!-- Stage Tables -->
+            <section>
+                <h2 id="stage">Stage & StageSettings Tables</h2>
+                <p>
+                    A stage represents a tournament phase (e.g., "Group Stage", "Playoffs"). 
+                    Settings are stored in a separate table with a 1:1 relationship.
+                </p>
+                
+                <div class="erd-container">
+                    <div class="erd-grid" style="grid-template-columns: repeat(2, 1fr);">
+                        <div class="erd-table">
+                            <div class="erd-table-header">
+                                <span class="erd-table-icon">📊</span>
+                                Stage
+                            </div>
+                            <div class="erd-table-body">
+                                <div class="erd-column erd-column-required">
+                                    <span class="erd-key erd-key-pk">PK</span>
+                                    <span class="erd-column-name">id</span>
+                                    <span class="erd-column-type">serial</span>
+                                </div>
+                                <div class="erd-column erd-column-required">
+                                    <span class="erd-key erd-key-fk">FK</span>
+                                    <span class="erd-column-name">tournamentId</span>
+                                    <span class="erd-column-type">integer → Tournament</span>
+                                </div>
+                                <div class="erd-column erd-column-required">
+                                    <span class="erd-column-name">name</span>
+                                    <span class="erd-column-type">text</span>
+                                </div>
+                                <div class="erd-column erd-column-required">
+                                    <span class="erd-column-name">type</span>
+                                    <span class="erd-column-type">StageType</span>
+                                </div>
+                                <div class="erd-column erd-column-required">
+                                    <span class="erd-column-name">number</span>
+                                    <span class="erd-column-type">integer</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="erd-table">
+                            <div class="erd-table-header">
+                                <span class="erd-table-icon">⚙️</span>
+                                StageSettings
+                            </div>
+                            <div class="erd-table-body">
+                                <div class="erd-column erd-column-required">
+                                    <span class="erd-key erd-key-pk">PK</span>
+                                    <span class="erd-column-name">id</span>
+                                    <span class="erd-column-type">uuid</span>
+                                </div>
+                                <div class="erd-column erd-column-required">
+                                    <span class="erd-key erd-key-fk">FK</span>
+                                    <span class="erd-column-name">stageId</span>
+                                    <span class="erd-column-type">integer <span class="constraint constraint-unique">UNIQUE</span></span>
+                                </div>
+                                <div class="erd-column">
+                                    <span class="erd-column-name">size</span>
+                                    <span class="erd-column-type">integer</span>
+                                </div>
+                                <div class="erd-column">
+                                    <span class="erd-column-name">seedOrdering</span>
+                                    <span class="erd-column-type">SeedOrdering[]</span>
+                                </div>
+                                <div class="erd-column">
+                                    <span class="erd-column-name">balanceByes</span>
+                                    <span class="erd-column-type">boolean</span>
+                                </div>
+                                <div class="erd-column">
+                                    <span class="erd-column-name">matchesChildCount</span>
+                                    <span class="erd-column-type">integer</span>
+                                </div>
+                                <div class="erd-column">
+                                    <span class="erd-column-name">groupCount</span>
+                                    <span class="erd-column-type">integer</span>
+                                </div>
+                                <div class="erd-column">
+                                    <span class="erd-column-name">roundRobinMode</span>
+                                    <span class="erd-column-type">RoundRobinMode</span>
+                                </div>
+                                <div class="erd-column">
+                                    <span class="erd-column-name">manualOrdering</span>
+                                    <span class="erd-column-type">jsonb</span>
+                                </div>
+                                <div class="erd-column">
+                                    <span class="erd-column-name">consolationFinal</span>
+                                    <span class="erd-column-type">boolean</span>
+                                </div>
+                                <div class="erd-column">
+                                    <span class="erd-column-name">skipFirstRound</span>
+                                    <span class="erd-column-type">boolean</span>
+                                </div>
+                                <div class="erd-column">
+                                    <span class="erd-column-name">grandFinal</span>
+                                    <span class="erd-column-type">GrandFinalType</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <h3>StageSettings Column Reference</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Column</th>
+                            <th>Type</th>
+                            <th>Applies To</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>size</code></td>
+                            <td>integer</td>
+                            <td>All</td>
+                            <td>Number of participants in this stage</td>
+                        </tr>
+                        <tr>
+                            <td><code>seedOrdering</code></td>
+                            <td>SeedOrdering[]</td>
+                            <td>All</td>
+                            <td>List of seed ordering methods per round</td>
+                        </tr>
+                        <tr>
+                            <td><code>balanceByes</code></td>
+                            <td>boolean</td>
+                            <td>Elimination</td>
+                            <td>Whether to distribute BYEs evenly</td>
+                        </tr>
+                        <tr>
+                            <td><code>matchesChildCount</code></td>
+                            <td>integer</td>
+                            <td>All</td>
+                            <td>Number of games per match (best-of-N)</td>
+                        </tr>
+                        <tr>
+                            <td><code>groupCount</code></td>
+                            <td>integer</td>
+                            <td>Round Robin</td>
+                            <td>Number of groups/pools</td>
+                        </tr>
+                        <tr>
+                            <td><code>roundRobinMode</code></td>
+                            <td>RoundRobinMode</td>
+                            <td>Round Robin</td>
+                            <td>Single or double round-robin</td>
+                        </tr>
+                        <tr>
+                            <td><code>manualOrdering</code></td>
+                            <td>jsonb</td>
+                            <td>Round Robin</td>
+                            <td>Manual seed distribution per group</td>
+                        </tr>
+                        <tr>
+                            <td><code>consolationFinal</code></td>
+                            <td>boolean</td>
+                            <td>Single Elim</td>
+                            <td>Whether to have 3rd place match</td>
+                        </tr>
+                        <tr>
+                            <td><code>skipFirstRound</code></td>
+                            <td>boolean</td>
+                            <td>Double Elim</td>
+                            <td>Skip first round in winner's bracket</td>
+                        </tr>
+                        <tr>
+                            <td><code>grandFinal</code></td>
+                            <td>GrandFinalType</td>
+                            <td>Double Elim</td>
+                            <td>Grand final configuration</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+            
+            <!-- Group Table -->
+            <section>
+                <h2 id="group">Group Table</h2>
+                <p>
+                    Represents divisions within a stage. In elimination brackets, groups separate 
+                    winner's bracket, loser's bracket, and grand final. In round-robin, they're the pools.
+                </p>
+                
+                <div class="erd-container">
+                    <div class="erd-table" style="max-width: 400px;">
+                        <div class="erd-table-header">
+                            <span class="erd-table-icon">📊</span>
+                            Group
+                        </div>
+                        <div class="erd-table-body">
+                            <div class="erd-column erd-column-required">
+                                <span class="erd-key erd-key-pk">PK</span>
+                                <span class="erd-column-name">id</span>
+                                <span class="erd-column-type">serial</span>
+                            </div>
+                            <div class="erd-column erd-column-required">
+                                <span class="erd-key erd-key-fk">FK</span>
+                                <span class="erd-column-name">stageId</span>
+                                <span class="erd-column-type">integer → Stage</span>
+                            </div>
+                            <div class="erd-column erd-column-required">
+                                <span class="erd-column-name">number</span>
+                                <span class="erd-column-type">integer</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info">
+                    <div class="alert-title">💡 Group Numbers by Stage Type</div>
+                    <ul>
+                        <li><strong>Single Elimination:</strong> Group 0 = main bracket, Group 1 = consolation final (if enabled)</li>
+                        <li><strong>Double Elimination:</strong> Group 0 = winner's bracket, Group 1 = loser's bracket, Group 2 = grand final</li>
+                        <li><strong>Round Robin:</strong> Group 0, 1, 2... = pools A, B, C...</li>
+                    </ul>
+                </div>
+            </section>
+            
+            <!-- Round Table -->
+            <section>
+                <h2 id="round">Round Table</h2>
+                <p>
+                    A round within a group (e.g., "Quarter-finals", "Round 1").
+                </p>
+                
+                <div class="erd-container">
+                    <div class="erd-table" style="max-width: 450px;">
+                        <div class="erd-table-header">
+                            <span class="erd-table-icon">🔄</span>
+                            Round
+                        </div>
+                        <div class="erd-table-body">
+                            <div class="erd-column erd-column-required">
+                                <span class="erd-key erd-key-pk">PK</span>
+                                <span class="erd-column-name">id</span>
+                                <span class="erd-column-type">serial</span>
+                            </div>
+                            <div class="erd-column erd-column-required">
+                                <span class="erd-key erd-key-fk">FK</span>
+                                <span class="erd-column-name">stageId</span>
+                                <span class="erd-column-type">integer → Stage</span>
+                            </div>
+                            <div class="erd-column erd-column-required">
+                                <span class="erd-key erd-key-fk">FK</span>
+                                <span class="erd-column-name">groupId</span>
+                                <span class="erd-column-type">integer → Group</span>
+                            </div>
+                            <div class="erd-column erd-column-required">
+                                <span class="erd-column-name">number</span>
+                                <span class="erd-column-type">integer</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Match Tables -->
+            <section>
+                <h2 id="match">Match & ParticipantMatchResult Tables</h2>
+                <p>
+                    Matches are the core competitive unit. Each match has two opponent results stored 
+                    in a separate table with a special dual-foreign-key pattern.
+                </p>
+                
+                <div class="erd-container">
+                    <div class="erd-grid" style="grid-template-columns: repeat(2, 1fr);">
+                        <div class="erd-table">
+                            <div class="erd-table-header">
+                                <span class="erd-table-icon">⚔️</span>
+                                Match
+                            </div>
+                            <div class="erd-table-body">
+                                <div class="erd-column erd-column-required">
+                                    <span class="erd-key erd-key-pk">PK</span>
+                                    <span class="erd-column-name">id</span>
+                                    <span class="erd-column-type">serial</span>
+                                </div>
+                                <div class="erd-column erd-column-required">
+                                    <span class="erd-column-name">status</span>
+                                    <span class="erd-column-type">MatchStatus</span>
+                                </div>
+                                <div class="erd-column erd-column-required">
+                                    <span class="erd-key erd-key-fk">FK</span>
+                                    <span class="erd-column-name">stageId</span>
+                                    <span class="erd-column-type">integer → Stage</span>
+                                </div>
+                                <div class="erd-column erd-column-required">
+                                    <span class="erd-key erd-key-fk">FK</span>
+                                    <span class="erd-column-name">groupId</span>
+                                    <span class="erd-column-type">integer → Group</span>
+                                </div>
+                                <div class="erd-column erd-column-required">
+                                    <span class="erd-key erd-key-fk">FK</span>
+                                    <span class="erd-column-name">roundId</span>
+                                    <span class="erd-column-type">integer → Round</span>
+                                </div>
+                                <div class="erd-column erd-column-required">
+                                    <span class="erd-column-name">number</span>
+                                    <span class="erd-column-type">integer</span>
+                                </div>
+                                <div class="erd-column erd-column-required">
+                                    <span class="erd-column-name">childCount</span>
+                                    <span class="erd-column-type">integer</span>
+                                </div>
+                                <div class="erd-column">
+                                    <span class="erd-column-name">extra</span>
+                                    <span class="erd-column-type">jsonb</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="erd-table">
+                            <div class="erd-table-header">
+                                <span class="erd-table-icon">📝</span>
+                                ParticipantMatchResult
+                            </div>
+                            <div class="erd-table-body">
+                                <div class="erd-column erd-column-required">
+                                    <span class="erd-key erd-key-pk">PK</span>
+                                    <span class="erd-column-name">id</span>
+                                    <span class="erd-column-type">serial</span>
+                                </div>
+                                <div class="erd-column">
+                                    <span class="erd-key erd-key-fk">FK</span>
+                                    <span class="erd-column-name">participantId</span>
+                                    <span class="erd-column-type">integer → Participant</span>
+                                </div>
+                                <div class="erd-column">
+                                    <span class="erd-column-name">position</span>
+                                    <span class="erd-column-type">integer</span>
+                                </div>
+                                <div class="erd-column">
+                                    <span class="erd-column-name">forfeit</span>
+                                    <span class="erd-column-type">boolean</span>
+                                </div>
+                                <div class="erd-column">
+                                    <span class="erd-column-name">score</span>
+                                    <span class="erd-column-type">integer</span>
+                                </div>
+                                <div class="erd-column">
+                                    <span class="erd-column-name">result</span>
+                                    <span class="erd-column-type">MatchResult</span>
+                                </div>
+                                <div class="erd-column">
+                                    <span class="erd-column-name">opponent1MatchId</span>
+                                    <span class="erd-column-type">integer <span class="constraint constraint-unique">UNIQUE</span></span>
+                                </div>
+                                <div class="erd-column">
+                                    <span class="erd-column-name">opponent2MatchId</span>
+                                    <span class="erd-column-type">integer <span class="constraint constraint-unique">UNIQUE</span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-warning">
+                    <div class="alert-title">⚠️ Dual Foreign Key Pattern</div>
+                    <p>
+                        <code>ParticipantMatchResult</code> uses a special pattern where <strong>only one</strong> of 
+                        <code>opponent1MatchId</code> or <code>opponent2MatchId</code> is set per row. This allows 
+                        Drizzle to establish two separate relations from Match to the result table.
+                    </p>
+                    <ul>
+                        <li>Row for opponent1: <code>opponent1MatchId = matchId</code>, <code>opponent2MatchId = null</code></li>
+                        <li>Row for opponent2: <code>opponent1MatchId = null</code>, <code>opponent2MatchId = matchId</code></li>
+                    </ul>
+                </div>
+                
+                <h3>Match Column Reference</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Column</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>status</code></td>
+                            <td>Current lifecycle state (LOCKED → WAITING → READY → RUNNING → COMPLETED)</td>
+                        </tr>
+                        <tr>
+                            <td><code>number</code></td>
+                            <td>Position within the round (1, 2, 3...)</td>
+                        </tr>
+                        <tr>
+                            <td><code>childCount</code></td>
+                            <td>Number of games in this match (for best-of-N)</td>
+                        </tr>
+                        <tr>
+                            <td><code>extra</code></td>
+                            <td>Custom JSON data (scheduled time, venue, stream URL, etc.)</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </section>
+            
+            <!-- MatchGame Tables -->
+            <section>
+                <h2 id="match-game">MatchGame & ParticipantMatchGameResult Tables</h2>
+                <p>
+                    For best-of-N matches, individual games are tracked separately. 
+                    The structure mirrors Match/ParticipantMatchResult.
+                </p>
+                
+                <div class="erd-container">
+                    <div class="erd-grid" style="grid-template-columns: repeat(2, 1fr);">
+                        <div class="erd-table">
+                            <div class="erd-table-header">
+                                <span class="erd-table-icon">🎮</span>
+                                MatchGame
+                            </div>
+                            <div class="erd-table-body">
+                                <div class="erd-column erd-column-required">
+                                    <span class="erd-key erd-key-pk">PK</span>
+                                    <span class="erd-column-name">id</span>
+                                    <span class="erd-column-type">serial</span>
+                                </div>
+                                <div class="erd-column erd-column-required">
+                                    <span class="erd-column-name">status</span>
+                                    <span class="erd-column-type">MatchStatus</span>
+                                </div>
+                                <div class="erd-column">
+                                    <span class="erd-column-name">extra</span>
+                                    <span class="erd-column-type">jsonb</span>
+                                </div>
+                                <div class="erd-column erd-column-required">
+                                    <span class="erd-key erd-key-fk">FK</span>
+                                    <span class="erd-column-name">stageId</span>
+                                    <span class="erd-column-type">integer → Stage</span>
+                                </div>
+                                <div class="erd-column erd-column-required">
+                                    <span class="erd-key erd-key-fk">FK</span>
+                                    <span class="erd-column-name">matchId</span>
+                                    <span class="erd-column-type">integer → Match</span>
+                                </div>
+                                <div class="erd-column erd-column-required">
+                                    <span class="erd-column-name">number</span>
+                                    <span class="erd-column-type">integer</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="erd-table">
+                            <div class="erd-table-header">
+                                <span class="erd-table-icon">📝</span>
+                                ParticipantMatchGameResult
+                            </div>
+                            <div class="erd-table-body">
+                                <div class="erd-column erd-column-required">
+                                    <span class="erd-key erd-key-pk">PK</span>
+                                    <span class="erd-column-name">id</span>
+                                    <span class="erd-column-type">serial</span>
+                                </div>
+                                <div class="erd-column">
+                                    <span class="erd-key erd-key-fk">FK</span>
+                                    <span class="erd-column-name">participantId</span>
+                                    <span class="erd-column-type">integer</span>
+                                </div>
+                                <div class="erd-column">
+                                    <span class="erd-column-name">position</span>
+                                    <span class="erd-column-type">integer</span>
+                                </div>
+                                <div class="erd-column">
+                                    <span class="erd-column-name">forfeit</span>
+                                    <span class="erd-column-type">boolean</span>
+                                </div>
+                                <div class="erd-column">
+                                    <span class="erd-column-name">score</span>
+                                    <span class="erd-column-type">integer</span>
+                                </div>
+                                <div class="erd-column">
+                                    <span class="erd-column-name">result</span>
+                                    <span class="erd-column-type">MatchResult</span>
+                                </div>
+                                <div class="erd-column">
+                                    <span class="erd-column-name">opponent1MatchGameId</span>
+                                    <span class="erd-column-type">integer <span class="constraint constraint-unique">UNIQUE</span></span>
+                                </div>
+                                <div class="erd-column">
+                                    <span class="erd-column-name">opponent2MatchGameId</span>
+                                    <span class="erd-column-type">integer <span class="constraint constraint-unique">UNIQUE</span></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Relationship Diagram -->
+            <section>
+                <h2 id="relationships">Relationship Diagram</h2>
+                <p>Visual representation of all table relationships:</p>
+                
+                <div class="erd-relationships">
+                    <h4 style="margin-bottom: var(--space-md); color: var(--color-text-heading);">Foreign Key References</h4>
+                    
+                    <div class="erd-relationship">
+                        <span class="erd-relationship-from">Tournament</span>
+                        <span class="erd-relationship-arrow">→</span>
+                        <span class="erd-relationship-to">Stage</span>
+                        <span class="erd-relationship-type">1:N (Tournament has many Stages)</span>
+                    </div>
+                    
+                    <div class="erd-relationship">
+                        <span class="erd-relationship-from">Tournament</span>
+                        <span class="erd-relationship-arrow">→</span>
+                        <span class="erd-relationship-to">Participant</span>
+                        <span class="erd-relationship-type">1:N (Tournament has many Participants)</span>
+                    </div>
+                    
+                    <div class="erd-relationship">
+                        <span class="erd-relationship-from">Stage</span>
+                        <span class="erd-relationship-arrow">→</span>
+                        <span class="erd-relationship-to">StageSettings</span>
+                        <span class="erd-relationship-type">1:1 (via stageId)</span>
+                    </div>
+                    
+                    <div class="erd-relationship">
+                        <span class="erd-relationship-from">Stage</span>
+                        <span class="erd-relationship-arrow">→</span>
+                        <span class="erd-relationship-to">Group</span>
+                        <span class="erd-relationship-type">1:N (Stage has many Groups)</span>
+                    </div>
+                    
+                    <div class="erd-relationship">
+                        <span class="erd-relationship-from">Group</span>
+                        <span class="erd-relationship-arrow">→</span>
+                        <span class="erd-relationship-to">Round</span>
+                        <span class="erd-relationship-type">1:N (Group has many Rounds)</span>
+                    </div>
+                    
+                    <div class="erd-relationship">
+                        <span class="erd-relationship-from">Round</span>
+                        <span class="erd-relationship-arrow">→</span>
+                        <span class="erd-relationship-to">Match</span>
+                        <span class="erd-relationship-type">1:N (Round has many Matches)</span>
+                    </div>
+                    
+                    <div class="erd-relationship">
+                        <span class="erd-relationship-from">Match</span>
+                        <span class="erd-relationship-arrow">→</span>
+                        <span class="erd-relationship-to">ParticipantMatchResult</span>
+                        <span class="erd-relationship-type">1:2 (opponent1 & opponent2)</span>
+                    </div>
+                    
+                    <div class="erd-relationship">
+                        <span class="erd-relationship-from">Match</span>
+                        <span class="erd-relationship-arrow">→</span>
+                        <span class="erd-relationship-to">MatchGame</span>
+                        <span class="erd-relationship-type">1:N (Match has many Games)</span>
+                    </div>
+                    
+                    <div class="erd-relationship">
+                        <span class="erd-relationship-from">MatchGame</span>
+                        <span class="erd-relationship-arrow">→</span>
+                        <span class="erd-relationship-to">ParticipantMatchGameResult</span>
+                        <span class="erd-relationship-type">1:2 (opponent1 & opponent2)</span>
+                    </div>
+                    
+                    <div class="erd-relationship">
+                        <span class="erd-relationship-from">Participant</span>
+                        <span class="erd-relationship-arrow">→</span>
+                        <span class="erd-relationship-to">ParticipantMatchResult</span>
+                        <span class="erd-relationship-type">1:N (Participant in many results)</span>
+                    </div>
+                </div>
+            </section>
+            
+            <!-- Navigation Footer -->
+            <footer class="doc-footer">
+                <div class="footer-nav">
+                    <span class="footer-nav-label">Previous</span>
+                    <a href="architecture.html" class="footer-nav-link">← Architecture</a>
+                </div>
+                <div class="footer-nav">
+                    <span class="footer-nav-label">Next</span>
+                    <a href="storage-handlers.html" class="footer-nav-link">Storage Handlers →</a>
+                </div>
+            </footer>
+        </main>
+    </div>
+    
+    <script>
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+    </script>
+</body>
+</html>
+
